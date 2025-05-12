@@ -8,9 +8,11 @@ import view.ResidueHashView.HashVisualizer;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.geom.Line2D;
-import java.awt.geom.Rectangle2D;
 
+/**
+ * Controlador para la visualización y manipulación del árbol de residuo simple.
+ * Implementa la interfaz HashVisualizer para dibujar la visualización del hash.
+ */
 public class ResidueHashController implements HashVisualizer {
     private final ResidueHashModel model;
     private final ResidueHashView view;
@@ -20,7 +22,14 @@ public class ResidueHashController implements HashVisualizer {
     // Variables para la visualización del hash
     private Integer lastInsertedKey = null;
     private Integer lastInsertedIndex = null;
+    private boolean showArbolVisualization = true;  // Siempre true para mostrar el árbol
 
+    /**
+     * Constructor principal.
+     *
+     * @param model Modelo del árbol de residuo simple
+     * @param view Vista para la visualización
+     */
     public ResidueHashController(ResidueHashModel model, ResidueHashView view) {
         this.model = model;
         this.view = view;
@@ -39,7 +48,14 @@ public class ResidueHashController implements HashVisualizer {
         updateVisualization();
     }
 
-    // Constructor adicional que recibe la referencia al controlador padre
+    /**
+     * Constructor adicional que recibe la referencia al controlador padre.
+     *
+     * @param model Modelo del árbol de residuo simple
+     * @param view Vista para la visualización
+     * @param parentController Controlador padre
+     * @param parentView Vista padre
+     */
     public ResidueHashController(ResidueHashModel model, ResidueHashView view,
                                  TreeController parentController, TreeView parentView) {
         this(model, view); // Llama al constructor principal
@@ -47,13 +63,22 @@ public class ResidueHashController implements HashVisualizer {
         this.parentView = parentView;
     }
 
-    // Método setter para el controlador padre (opcional, puede ser útil)
+    /**
+     * Método setter para el controlador padre.
+     *
+     * @param parentController Controlador padre
+     * @param parentView Vista padre
+     */
     public void setParentController(TreeController parentController, TreeView parentView) {
         this.parentController = parentController;
         this.parentView = parentView;
     }
 
-    // Método para insertar un elemento en la tabla hash
+    /**
+     * Maneja el evento de insertar un elemento en la tabla hash.
+     *
+     * @param e Evento de acción
+     */
     private void insertEntry(ActionEvent e) {
         try {
             String keyStr = view.getKey();
@@ -65,6 +90,9 @@ public class ResidueHashController implements HashVisualizer {
             }
 
             int key = Integer.parseInt(keyStr);
+
+            // Verificar si ya existe esta clave
+            Object existingValue = model.get(key);
 
             boolean isNew = model.put(key, value);
             lastInsertedKey = key;
@@ -81,7 +109,8 @@ public class ResidueHashController implements HashVisualizer {
 
             // Resaltar fila donde se insertó
             for (int i = 0; i < view.getTableRowCount(); i++) {
-                if (Integer.parseInt(view.getTableValueAt(i, 0).toString()) == lastInsertedIndex) {
+                if (view.getTableValueAt(i, 0) != null &&
+                        Integer.parseInt(view.getTableValueAt(i, 0).toString()) == lastInsertedIndex) {
                     view.highlightRow(i);
                     break;
                 }
@@ -89,10 +118,17 @@ public class ResidueHashController implements HashVisualizer {
 
         } catch (NumberFormatException ex) {
             view.setResultMessage("La clave debe ser un número entero", false);
+        } catch (Exception ex) {
+            view.setResultMessage("Error al insertar: " + ex.getMessage(), false);
+            ex.printStackTrace(); // Debug
         }
     }
 
-    // Método para buscar un elemento en la tabla hash
+    /**
+     * Maneja el evento de buscar un elemento en la tabla hash.
+     *
+     * @param e Evento de acción
+     */
     private void searchEntry(ActionEvent e) {
         try {
             String keyStr = view.getSearchKey();
@@ -114,7 +150,8 @@ public class ResidueHashController implements HashVisualizer {
 
                 // Resaltar fila donde se encontró
                 for (int i = 0; i < view.getTableRowCount(); i++) {
-                    if (Integer.parseInt(view.getTableValueAt(i, 0).toString()) == index) {
+                    if (view.getTableValueAt(i, 0) != null &&
+                            Integer.parseInt(view.getTableValueAt(i, 0).toString()) == index) {
                         view.highlightRow(i);
                         break;
                     }
@@ -127,10 +164,16 @@ public class ResidueHashController implements HashVisualizer {
 
         } catch (NumberFormatException ex) {
             view.setResultMessage("La clave debe ser un número entero", false);
+        } catch (Exception ex) {
+            view.setResultMessage("Error al buscar: " + ex.getMessage(), false);
         }
     }
 
-    // Método para eliminar un elemento de la tabla hash
+    /**
+     * Maneja el evento de eliminar un elemento de la tabla hash.
+     *
+     * @param e Evento de acción
+     */
     private void deleteEntry(ActionEvent e) {
         try {
             String keyStr = view.getDeleteKey();
@@ -143,25 +186,41 @@ public class ResidueHashController implements HashVisualizer {
             int key = Integer.parseInt(keyStr);
             int index = key % model.getCapacity();
 
-            boolean deleted = model.remove(key);
-            lastInsertedKey = null;
-            lastInsertedIndex = null;
+            // Verificar si existe antes de eliminar
+            Object value = model.get(key);
+            boolean elementExists = (value != null);
 
-            if (deleted) {
-                view.setResultMessage("Elemento eliminado correctamente del índice " + index, true);
+            if (elementExists) {
+                lastInsertedKey = key;
+                lastInsertedIndex = index;
+
+                // Mostrar visualización con el elemento antes de eliminarlo
+                updateVisualization();
+
+                // Eliminar el elemento
+                boolean deleted = model.remove(key);
+                if (deleted) {
+                    view.setResultMessage("Elemento eliminado correctamente del índice " + index, true);
+                    updateVisualization();
+                }
             } else {
                 view.setResultMessage("No se encontró un elemento con esa clave", false);
             }
 
             view.clearInputFields();
-            updateVisualization();
 
         } catch (NumberFormatException ex) {
             view.setResultMessage("La clave debe ser un número entero", false);
+        } catch (Exception ex) {
+            view.setResultMessage("Error al eliminar: " + ex.getMessage(), false);
         }
     }
 
-    // Método para limpiar la tabla hash
+    /**
+     * Maneja el evento de limpiar la tabla hash.
+     *
+     * @param e Evento de acción
+     */
     private void clearTable(ActionEvent e) {
         if (model.size() == 0) {
             view.setResultMessage("La tabla ya está vacía", false);
@@ -186,7 +245,11 @@ public class ResidueHashController implements HashVisualizer {
         }
     }
 
-    // Método para volver a la pantalla anterior
+    /**
+     * Maneja el evento de volver a la pantalla anterior.
+     *
+     * @param e Evento de acción
+     */
     private void goBack(ActionEvent e) {
         view.dispose();
 
@@ -198,131 +261,73 @@ public class ResidueHashController implements HashVisualizer {
         }
     }
 
-    // Método para actualizar la visualización de la tabla hash
-    // Cambiado a public para que pueda ser accedido desde TreeController
+    /**
+     * Actualiza la visualización de la tabla hash y el árbol.
+     * Este método es público para poder ser accedido desde el TreeController.
+     */
     public void updateVisualization() {
         view.updateHashTable(model.getTable());
         view.updateStatistics(model.getCapacity(), model.size(), model.getLoadFactor());
 
         // Solicitar al panel de visualización que se repinte
-        JPanel visualizationPanel = view.getHashVisualizationPanel();
-        visualizationPanel.repaint();
+        view.repaintTreePanel();
     }
 
-    // Implementación del método de la interfaz HashVisualizer
+    /**
+     * Implementación del método de la interfaz HashVisualizer.
+     * Este método se llama cuando la vista necesita dibujar la visualización del hash.
+     *
+     * @param g2d Contexto gráfico 2D
+     * @param width Ancho del panel
+     * @param height Alto del panel
+     */
     @Override
     public void paintHashVisualization(Graphics2D g2d, int width, int height) {
         // Limpiar el panel
         g2d.setColor(Color.WHITE);
         g2d.fillRect(0, 0, width, height);
 
-        // Si no hay ningún elemento para visualizar, salimos
-        if (lastInsertedKey == null || lastInsertedIndex == null) {
-            g2d.setColor(Color.GRAY);
-            g2d.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-            g2d.drawString("Inserte, busque o elimine valores para ver la visualización del hash", width / 2 - 200, height / 2);
-            return;
+        try {
+            // Configurar el ancho del árbol
+            model.setArbolWidth(width);
+
+            // Dibujar el árbol de residuo simple
+            model.getArbol().dibujar(g2d);
+
+            // Si no hay elementos en el modelo, dibujamos un nodo raíz vacío
+            if (model.size() == 0) {
+                // Dibujamos un nodo raíz vacío
+                int centerX = width / 2;
+                int centerY = 100;
+
+                // Dibujar el círculo
+                g2d.setColor(new Color(173, 216, 230)); // Color celeste claro
+                g2d.fillOval(centerX - 30, centerY - 30, 60, 60);
+                g2d.setColor(Color.BLACK);
+                g2d.drawOval(centerX - 30, centerY - 30, 60, 60);
+            }
+        } catch (Exception ex) {
+            // Si ocurre algún error en el dibujo, mostrar un mensaje
+            g2d.setColor(Color.RED);
+            g2d.drawString("Error al dibujar el árbol: " + ex.getMessage(), 20, 50);
+            ex.printStackTrace(); // Debug
         }
-
-        // Configuración de la visualización
-        int margin = 20;
-        int boxWidth = 60;
-        int boxHeight = 40;
-
-        // Dibujar el esquema de la función hash
-        g2d.setColor(Color.BLACK);
-        g2d.setFont(new Font("Segoe UI", Font.BOLD, 14));
-
-        // Dibujar la entrada (clave)
-        g2d.setColor(new Color(41, 128, 185));
-        Rectangle2D keyBox = new Rectangle2D.Double(margin, height / 2 - boxHeight / 2, boxWidth, boxHeight);
-        g2d.fill(keyBox);
-
-        g2d.setColor(Color.WHITE);
-        String keyText = lastInsertedKey.toString();
-        int keyTextWidth = g2d.getFontMetrics().stringWidth(keyText);
-        g2d.drawString(keyText, margin + boxWidth / 2 - keyTextWidth / 2, height / 2 + 5);
-
-        // Dibujar la función hash
-        g2d.setColor(Color.BLACK);
-        int functionX = margin + boxWidth + 20;
-        String functionText = "h(k) = k mod " + model.getCapacity();
-        g2d.drawString(functionText, functionX, height / 2 + 5);
-
-        // Dibujar la flecha de la entrada a la función
-        g2d.draw(new Line2D.Double(margin + boxWidth, height / 2, functionX - 5, height / 2));
-        g2d.fillPolygon(
-                new int[]{functionX - 5, functionX - 10, functionX - 10},
-                new int[]{height / 2, height / 2 - 5, height / 2 + 5},
-                3
-        );
-
-        // Dibujar el resultado (índice)
-        int resultX = functionX + g2d.getFontMetrics().stringWidth(functionText) + 20;
-        g2d.setColor(new Color(46, 204, 113));
-        Rectangle2D indexBox = new Rectangle2D.Double(resultX, height / 2 - boxHeight / 2, boxWidth, boxHeight);
-        g2d.fill(indexBox);
-
-        g2d.setColor(Color.WHITE);
-        String indexText = lastInsertedIndex.toString();
-        int indexTextWidth = g2d.getFontMetrics().stringWidth(indexText);
-        g2d.drawString(indexText, resultX + boxWidth / 2 - indexTextWidth / 2, height / 2 + 5);
-
-        // Dibujar la flecha de la función al resultado
-        g2d.setColor(Color.BLACK);
-        int arrowStartX = functionX + g2d.getFontMetrics().stringWidth(functionText) + 5;
-        g2d.draw(new Line2D.Double(arrowStartX, height / 2, resultX - 5, height / 2));
-        g2d.fillPolygon(
-                new int[]{resultX - 5, resultX - 10, resultX - 10},
-                new int[]{height / 2, height / 2 - 5, height / 2 + 5},
-                3
-        );
-
-        // Dibujar una tabla simplificada (opcional)
-        int tableX = resultX + boxWidth + 20;
-        int tableY = height / 2 - boxHeight * 2;
-        int tableWidth = boxWidth;
-        int tableHeight = boxHeight * 5;
-
-        g2d.setColor(Color.LIGHT_GRAY);
-        g2d.drawRect(tableX, tableY, tableWidth, tableHeight);
-
-        // Dibujar algunas filas en la tabla
-        for (int i = 1; i < 5; i++) {
-            int rowY = tableY + i * boxHeight;
-            g2d.drawLine(tableX, rowY, tableX + tableWidth, rowY);
-        }
-
-        // Destacar la fila donde se insertó el elemento
-        g2d.setColor(new Color(46, 204, 113, 100));
-        int highlightY = tableY + lastInsertedIndex % 5 * boxHeight;
-        g2d.fillRect(tableX, highlightY, tableWidth, boxHeight);
-
-        // Dibujar índices en la tabla
-        g2d.setColor(Color.BLACK);
-        g2d.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        for (int i = 0; i < 5; i++) {
-            String text = String.valueOf(i);
-            int textX = tableX + 5;
-            int textY = tableY + i * boxHeight + boxHeight / 2 + 5;
-            g2d.drawString(text, textX, textY);
-        }
-
-        // Dibujar flecha del índice a la tabla
-        g2d.draw(new Line2D.Double(resultX + boxWidth, height / 2, tableX - 5, highlightY + boxHeight / 2));
-        g2d.fillPolygon(
-                new int[]{tableX - 5, tableX - 10, tableX - 10},
-                new int[]{highlightY + boxHeight / 2, highlightY + boxHeight / 2 - 5, highlightY + boxHeight / 2 + 5},
-                3
-        );
     }
 
+    /**
+     * Inicializa la vista.
+     */
     public void initView() {
         SwingUtilities.invokeLater(() -> {
             view.showWindow();
         });
     }
 
+    /**
+     * Método principal para pruebas.
+     *
+     * @param args Argumentos de línea de comandos
+     */
     public static void main(String[] args) {
         ResidueHashModel model = new ResidueHashModel(11); // Usar un número primo como tamaño inicial
         ResidueHashView view = new ResidueHashView();

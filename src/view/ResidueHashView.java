@@ -4,12 +4,17 @@ import model.ResidueHashModel.HashEntry;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
 
+/**
+ * Vista mejorada para el árbol de residuo simple.
+ * Incluye una tabla para mostrar el hash y un panel para visualizar el árbol.
+ */
 public class ResidueHashView extends JFrame {
 
     private final JButton btnInsert;
@@ -25,9 +30,9 @@ public class ResidueHashView extends JFrame {
     private final JTextField txtDeleteKey;
     private final JLabel lblResult;
     private final JLabel lblStatistics;
-    private final JPanel hashVisualizationPanel;
+    private final TreePanel treeVisualizationPanel;
 
-    // Interfaz para el visualizador de hash
+    // Interfaz para el visualizador del árbol
     public interface HashVisualizer {
         void paintHashVisualization(Graphics2D g2d, int width, int height);
     }
@@ -35,71 +40,93 @@ public class ResidueHashView extends JFrame {
     // Referencia al visualizador de hash
     private HashVisualizer hashVisualizer;
 
+    // Panel personalizado para dibujar el árbol con tamaño adecuado
+    private class TreePanel extends JPanel {
+        public TreePanel() {
+            setBackground(Color.WHITE);
+            // Usamos un tamaño preferido grande para asegurar que quepa el árbol completo
+            setPreferredSize(new Dimension(700, 500));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (hashVisualizer != null) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                hashVisualizer.paintHashVisualization(g2d, getWidth(), getHeight());
+            } else {
+                g.setColor(Color.LIGHT_GRAY);
+                g.drawString("No hay visualización disponible", getWidth()/2 - 80, getHeight()/2);
+            }
+        }
+    }
+
+    /**
+     * Constructor que inicializa la interfaz gráfica.
+     */
     public ResidueHashView() {
-        // Basic window configuration
+        // Configuración básica de la ventana
         setTitle("Dispersión por Residuos (División)");
-        setSize(800, 950);
+        setSize(800, 750);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(15, 15));
 
-        // Set soft background color for the entire window
-        getContentPane().setBackground(new Color(240, 248, 255));
+        // Panel principal con layout de borde
+        JPanel mainPanel = new JPanel(new BorderLayout(5, 5));
+        mainPanel.setBackground(new Color(240, 248, 255));
+        setContentPane(mainPanel);
 
-        // Top panel with title and subtitle
-        JPanel titlePanel = new JPanel();
-        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
-        titlePanel.setBackground(new Color(70, 130, 180)); // Steel Blue
-        titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        // Panel superior con título
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setBackground(new Color(70, 130, 180)); // Azul acero
+        titlePanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         JLabel lblTitle = new JLabel("Algoritmo de Dispersión por Residuos");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 20));
         lblTitle.setForeground(Color.WHITE);
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lblTitle.setHorizontalAlignment(SwingConstants.CENTER);
 
         JLabel lblSubtitle = new JLabel("Función Hash: h(k) = k mod m");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-        lblSubtitle.setForeground(new Color(240, 248, 255));
-        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lblSubtitle.setFont(new Font("Arial", Font.PLAIN, 14));
+        lblSubtitle.setForeground(Color.WHITE);
+        lblSubtitle.setHorizontalAlignment(SwingConstants.CENTER);
 
-        titlePanel.add(lblTitle);
-        titlePanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        titlePanel.add(lblSubtitle);
+        titlePanel.add(lblTitle, BorderLayout.CENTER);
+        titlePanel.add(lblSubtitle, BorderLayout.SOUTH);
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
 
-        add(titlePanel, BorderLayout.NORTH);
-
-        // Center panel with hash table visualization and operations
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        // Panel central que contendrá la tabla y la visualización
+        JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
         centerPanel.setBackground(new Color(240, 248, 255));
-        centerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        centerPanel.setBorder(new EmptyBorder(5, 10, 5, 10));
 
-        // Hash table visualization panel
+        // Panel para la tabla hash
         JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setBackground(new Color(240, 248, 255));
         tablePanel.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
                 "Tabla Hash",
-                0,
-                0,
-                new Font("Segoe UI", Font.BOLD, 14),
+                TitledBorder.DEFAULT_JUSTIFICATION,
+                TitledBorder.DEFAULT_POSITION,
+                new Font("Arial", Font.BOLD, 12),
                 new Color(70, 130, 180)));
 
-        // Create table model with three columns: index, keys, values
+        // Modelo de tabla con 4 columnas
         tableModel = new DefaultTableModel(new Object[]{"Índice", "Claves", "Valores", "Hash Original"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table non-editable
+                return false; // No editable
             }
         };
 
         hashTable = new JTable(tableModel);
-        hashTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        hashTable.setRowHeight(30);
-        hashTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+        hashTable.setFont(new Font("Arial", Font.PLAIN, 12));
+        hashTable.setRowHeight(25);
+        hashTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
         hashTable.getTableHeader().setBackground(new Color(41, 128, 185));
         hashTable.getTableHeader().setForeground(Color.WHITE);
 
-        // Custom renderer for highlighting collisions
+        // Renderer personalizado para resaltar colisiones
         hashTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -107,12 +134,11 @@ public class ResidueHashView extends JFrame {
                                                            int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-                // Verificamos si hay un marcador de colisión en la columna "Claves"
+                // Verificar si hay colisión (clave con coma)
                 String keysCell = (String) table.getValueAt(row, 1);
                 if (column == 1 || column == 2) {
                     if (keysCell != null && keysCell.contains(",")) {
-                        // Si hay colisiones, pintamos la celda de un color amarillo claro
-                        c.setBackground(new Color(255, 252, 204));
+                        c.setBackground(new Color(255, 252, 204)); // Amarillo claro
                     } else if (!isSelected) {
                         c.setBackground(Color.WHITE);
                     }
@@ -124,246 +150,268 @@ public class ResidueHashView extends JFrame {
             }
         });
 
-        JScrollPane scrollPane = new JScrollPane(hashTable);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(41, 128, 185), 1));
+        JScrollPane tableScrollPane = new JScrollPane(hashTable);
+        tableScrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        tablePanel.add(tableScrollPane, BorderLayout.CENTER);
+        tablePanel.setPreferredSize(new Dimension(0, 200)); // Altura fija para la tabla
 
-        tablePanel.add(scrollPane, BorderLayout.CENTER);
+        // Añadir panel de tabla al panel central (ocupará la parte superior)
+        centerPanel.add(tablePanel, BorderLayout.NORTH);
 
-        // Hash function visualization panel
-        hashVisualizationPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                // El controlador configurará un método para pintar aquí
-                if (hashVisualizer != null) {
-                    hashVisualizer.paintHashVisualization(g2d, getWidth(), getHeight());
-                }
-            }
-        };
-        hashVisualizationPanel.setBackground(Color.WHITE);
-        hashVisualizationPanel.setPreferredSize(new Dimension(0, 200));
-        hashVisualizationPanel.setBorder(BorderFactory.createTitledBorder(
+        // Panel para la visualización del árbol con scroll
+        JPanel visualizationPanel = new JPanel(new BorderLayout());
+        visualizationPanel.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
                 "Visualización de la Función Hash",
-                0,
-                0,
-                new Font("Segoe UI", Font.BOLD, 14),
+                TitledBorder.DEFAULT_JUSTIFICATION,
+                TitledBorder.DEFAULT_POSITION,
+                new Font("Arial", Font.BOLD, 12),
                 new Color(70, 130, 180)));
 
-        // Statistics label
+        // Crear panel para dibujar el árbol
+        treeVisualizationPanel = new TreePanel();
+
+        // Añadir el panel a un JScrollPane para permitir scroll
+        JScrollPane scrollPane = new JScrollPane(treeVisualizationPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(null); // Quitar borde del scroll
+
+        visualizationPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Etiqueta para estadísticas
         lblStatistics = new JLabel("Estadísticas: Capacidad: 0 | Elementos: 0 | Factor de carga: 0.0");
-        lblStatistics.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblStatistics.setFont(new Font("Arial", Font.BOLD, 12));
         lblStatistics.setHorizontalAlignment(SwingConstants.CENTER);
-        lblStatistics.setBorder(new EmptyBorder(10, 0, 10, 0));
+        lblStatistics.setBorder(new EmptyBorder(5, 0, 5, 0));
+        visualizationPanel.add(lblStatistics, BorderLayout.SOUTH);
 
-        JPanel statsPanel = new JPanel(new BorderLayout());
-        statsPanel.setBackground(Color.WHITE);
-        statsPanel.add(lblStatistics, BorderLayout.CENTER);
+        centerPanel.add(visualizationPanel, BorderLayout.CENTER);
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
 
-        // Add table and visualization to center panel
-        JPanel visualizationPanel = new JPanel(new BorderLayout());
-        visualizationPanel.add(hashVisualizationPanel, BorderLayout.CENTER);
-        visualizationPanel.add(statsPanel, BorderLayout.SOUTH);
-
-        tablePanel.add(visualizationPanel, BorderLayout.SOUTH);
-        centerPanel.add(tablePanel, BorderLayout.CENTER);
-
-        // Control panel (at the bottom)
-        JPanel controlPanel = new JPanel(new BorderLayout(10, 10));
+        // Panel inferior con controles
+        JPanel controlPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+        controlPanel.setBorder(new EmptyBorder(5, 10, 10, 10));
         controlPanel.setBackground(new Color(240, 248, 255));
-        controlPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        // Panel contenedor que organiza verticalmente los subpaneles
-        JPanel verticalControlPanel = new JPanel();
-        verticalControlPanel.setLayout(new BoxLayout(verticalControlPanel, BoxLayout.Y_AXIS));
-        verticalControlPanel.setBackground(new Color(240, 248, 255));
+        // Fila 1: Inserción
+        JPanel insertPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        insertPanel.setBackground(new Color(240, 248, 255));
 
-        // Panel para insertar valores
-        JPanel insertPanel = createControlPanel();
         JLabel lblKey = new JLabel("Clave (entero):");
-        lblKey.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblKey.setFont(new Font("Arial", Font.PLAIN, 12));
 
         txtKey = new JTextField(6);
-        txtKey.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtKey.setFont(new Font("Arial", Font.PLAIN, 12));
 
         JLabel lblValue = new JLabel("Valor:");
-        lblValue.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblValue.setFont(new Font("Arial", Font.PLAIN, 12));
 
         txtValue = new JTextField(10);
-        txtValue.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtValue.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        btnInsert = createStyledButton("Insertar", new Color(46, 204, 113));
+        btnInsert = new JButton("Insertar");
+        btnInsert.setBackground(new Color(46, 204, 113));
+        btnInsert.setForeground(Color.WHITE);
+        btnInsert.setFocusPainted(false);
 
         insertPanel.add(lblKey);
         insertPanel.add(txtKey);
-        insertPanel.add(Box.createHorizontalStrut(10));
         insertPanel.add(lblValue);
         insertPanel.add(txtValue);
-        insertPanel.add(Box.createHorizontalStrut(10));
         insertPanel.add(btnInsert);
 
-        verticalControlPanel.add(insertPanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        // Fila 2: Búsqueda
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.setBackground(new Color(240, 248, 255));
 
-        // Panel para buscar valor
-        JPanel searchPanel = createControlPanel();
         JLabel lblSearch = new JLabel("Buscar clave:");
-        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblSearch.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        txtSearchKey = new JTextField(10);
-        txtSearchKey.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtSearchKey = new JTextField(8);
+        txtSearchKey.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        btnSearch = createStyledButton("Buscar", new Color(41, 128, 185));
+        btnSearch = new JButton("Buscar");
+        btnSearch.setBackground(new Color(41, 128, 185));
+        btnSearch.setForeground(Color.WHITE);
+        btnSearch.setFocusPainted(false);
 
         searchPanel.add(lblSearch);
         searchPanel.add(txtSearchKey);
-        searchPanel.add(Box.createHorizontalStrut(10));
         searchPanel.add(btnSearch);
 
-        verticalControlPanel.add(searchPanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        // Fila 3: Eliminación
+        JPanel deletePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        deletePanel.setBackground(new Color(240, 248, 255));
 
-        // Panel para eliminar valores
-        JPanel deletePanel = createControlPanel();
         JLabel lblDelete = new JLabel("Eliminar clave:");
-        lblDelete.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblDelete.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        txtDeleteKey = new JTextField(10);
-        txtDeleteKey.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtDeleteKey = new JTextField(8);
+        txtDeleteKey.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        btnDelete = createStyledButton("Eliminar", new Color(231, 76, 60));
+        btnDelete = new JButton("Eliminar");
+        btnDelete.setBackground(new Color(231, 76, 60));
+        btnDelete.setForeground(Color.WHITE);
+        btnDelete.setFocusPainted(false);
 
         deletePanel.add(lblDelete);
         deletePanel.add(txtDeleteKey);
-        deletePanel.add(Box.createHorizontalStrut(10));
         deletePanel.add(btnDelete);
 
-        verticalControlPanel.add(deletePanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        // Fila 4: Botones adicionales y resultado
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        bottomPanel.setBackground(new Color(240, 248, 255));
 
-        // Panel para botones adicionales
-        JPanel additionalButtonsPanel = createControlPanel();
-        btnClear = createStyledButton("Limpiar Tabla", new Color(155, 89, 182));
-        additionalButtonsPanel.add(btnClear);
+        btnClear = new JButton("Limpiar Tabla");
+        btnClear.setBackground(new Color(155, 89, 182));
+        btnClear.setForeground(Color.WHITE);
+        btnClear.setFocusPainted(false);
 
-        verticalControlPanel.add(additionalButtonsPanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        btnBack = new JButton("Volver");
+        btnBack.setBackground(new Color(231, 76, 60));
+        btnBack.setForeground(Color.WHITE);
+        btnBack.setFocusPainted(false);
 
-        // Result label
         lblResult = new JLabel("");
-        lblResult.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblResult.setHorizontalAlignment(SwingConstants.CENTER);
-        lblResult.setBorder(new EmptyBorder(10, 0, 10, 0));
+        lblResult.setFont(new Font("Arial", Font.BOLD, 12));
 
-        JPanel resultPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        resultPanel.setBackground(new Color(240, 248, 255));
-        resultPanel.add(lblResult);
+        bottomPanel.add(btnClear);
+        bottomPanel.add(Box.createHorizontalStrut(10));
+        bottomPanel.add(btnBack);
+        bottomPanel.add(Box.createHorizontalStrut(20));
+        bottomPanel.add(lblResult);
 
-        verticalControlPanel.add(resultPanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+        // Añadir las filas al panel de control
+        controlPanel.add(insertPanel);
+        controlPanel.add(searchPanel);
+        controlPanel.add(deletePanel);
+        controlPanel.add(bottomPanel);
 
-        // Button panel for back button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(new Color(240, 248, 255));
+        mainPanel.add(controlPanel, BorderLayout.SOUTH);
 
-        btnBack = createStyledButton("Volver", new Color(231, 76, 60));
-        buttonPanel.add(btnBack);
+        // Panel de pie de página
+        JPanel footerPanel = new JPanel();
+        footerPanel.setBackground(new Color(220, 220, 220));
+        JLabel lblFooter = new JLabel("© 2025 - Algoritmos de Dispersión v1.0");
+        lblFooter.setFont(new Font("Arial", Font.PLAIN, 10));
+        lblFooter.setForeground(new Color(100, 100, 100));
+        footerPanel.add(lblFooter);
 
-        verticalControlPanel.add(buttonPanel);
-
-        controlPanel.add(verticalControlPanel, BorderLayout.CENTER);
-        centerPanel.add(controlPanel, BorderLayout.SOUTH);
-
-        add(centerPanel, BorderLayout.CENTER);
-
-        // Bottom panel with information
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setBackground(new Color(220, 220, 220));
-        bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        JLabel lblInfo = new JLabel("© 2025 - Algoritmos de Dispersión v1.0");
-        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblInfo.setForeground(new Color(100, 100, 100));
-
-        bottomPanel.add(lblInfo);
-        add(bottomPanel, BorderLayout.SOUTH);
+        mainPanel.add(footerPanel, BorderLayout.PAGE_END);
     }
 
-    private JPanel createControlPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        panel.setBackground(new Color(240, 248, 255));
-        return panel;
-    }
-
-    // Method to create a styled button
-    private JButton createStyledButton(String text, Color backgroundColor) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setBackground(backgroundColor);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(150, 35));  // Estandarizar tamaño
-
-        return button;
-    }
-
-    // Methods to assign external actions to buttons
+    /**
+     * Asigna un listener al botón de insertar.
+     *
+     * @param listener ActionListener para manejar el evento
+     */
     public void addInsertListener(ActionListener listener) {
         btnInsert.addActionListener(listener);
     }
 
+    /**
+     * Asigna un listener al botón de buscar.
+     *
+     * @param listener ActionListener para manejar el evento
+     */
     public void addSearchListener(ActionListener listener) {
         btnSearch.addActionListener(listener);
     }
 
+    /**
+     * Asigna un listener al botón de eliminar.
+     *
+     * @param listener ActionListener para manejar el evento
+     */
     public void addDeleteListener(ActionListener listener) {
         btnDelete.addActionListener(listener);
     }
 
+    /**
+     * Asigna un listener al botón de limpiar.
+     *
+     * @param listener ActionListener para manejar el evento
+     */
     public void addClearListener(ActionListener listener) {
         btnClear.addActionListener(listener);
     }
 
+    /**
+     * Asigna un listener al botón de volver.
+     *
+     * @param listener ActionListener para manejar el evento
+     */
     public void addBackListener(ActionListener listener) {
         btnBack.addActionListener(listener);
     }
 
-    // Methods to get user inputs
+    /**
+     * Obtiene el valor de la clave a insertar.
+     *
+     * @return Texto ingresado en el campo de clave
+     */
     public String getKey() {
         return txtKey.getText().trim();
     }
 
+    /**
+     * Obtiene el valor a asociar con la clave.
+     *
+     * @return Texto ingresado en el campo de valor
+     */
     public String getValue() {
         return txtValue.getText().trim();
     }
 
+    /**
+     * Obtiene la clave a buscar.
+     *
+     * @return Texto ingresado en el campo de búsqueda
+     */
     public String getSearchKey() {
         return txtSearchKey.getText().trim();
     }
 
+    /**
+     * Obtiene la clave a eliminar.
+     *
+     * @return Texto ingresado en el campo de eliminación
+     */
     public String getDeleteKey() {
         return txtDeleteKey.getText().trim();
     }
 
-    // Method to display operation result
+    /**
+     * Muestra un mensaje de resultado de una operación.
+     *
+     * @param message Mensaje a mostrar
+     * @param isSuccess true si la operación fue exitosa, false en caso contrario
+     */
     public void setResultMessage(String message, boolean isSuccess) {
         lblResult.setText(message);
         lblResult.setForeground(isSuccess ? new Color(46, 125, 50) : new Color(198, 40, 40));
     }
 
-    // Method to update statistics
+    /**
+     * Actualiza las estadísticas mostradas.
+     *
+     * @param capacity Capacidad de la tabla
+     * @param size Cantidad de elementos
+     * @param loadFactor Factor de carga
+     */
     public void updateStatistics(int capacity, int size, double loadFactor) {
         String stats = String.format("Estadísticas: Capacidad: %d | Elementos: %d | Factor de carga: %.2f",
                 capacity, size, loadFactor);
         lblStatistics.setText(stats);
     }
 
-    // Method to populate the hash table
+    /**
+     * Actualiza la tabla hash con los datos actuales.
+     *
+     * @param table Tabla hash con las entradas
+     */
     public void updateHashTable(LinkedList<HashEntry>[] table) {
         tableModel.setRowCount(0);
 
@@ -395,7 +443,11 @@ public class ResidueHashView extends JFrame {
         }
     }
 
-    // Method to highlight a specific row in the table
+    /**
+     * Resalta una fila en la tabla.
+     *
+     * @param rowIndex Índice de la fila a resaltar
+     */
     public void highlightRow(int rowIndex) {
         if (rowIndex >= 0 && rowIndex < hashTable.getRowCount()) {
             hashTable.setRowSelectionInterval(rowIndex, rowIndex);
@@ -403,27 +455,47 @@ public class ResidueHashView extends JFrame {
         }
     }
 
-    // Method to get row count of the table
+    /**
+     * Obtiene la cantidad de filas en la tabla.
+     *
+     * @return Número de filas
+     */
     public int getTableRowCount() {
         return hashTable.getRowCount();
     }
 
-    // Method to get value at specific cell in the table
+    /**
+     * Obtiene el valor en una celda específica de la tabla.
+     *
+     * @param row Fila
+     * @param column Columna
+     * @return Valor en la celda
+     */
     public Object getTableValueAt(int row, int column) {
         return hashTable.getValueAt(row, column);
     }
 
-    // Method to set hash visualizer
+    /**
+     * Establece el visualizador de hash.
+     *
+     * @param visualizer Implementación de HashVisualizer
+     */
     public void setHashVisualizer(HashVisualizer visualizer) {
         this.hashVisualizer = visualizer;
     }
 
-    // Method to get the hash visualization panel for drawing
+    /**
+     * Obtiene el panel de visualización del hash.
+     *
+     * @return Panel donde se dibuja la visualización
+     */
     public JPanel getHashVisualizationPanel() {
-        return hashVisualizationPanel;
+        return treeVisualizationPanel;
     }
 
-    // Method to clear input fields
+    /**
+     * Limpia los campos de entrada.
+     */
     public void clearInputFields() {
         txtKey.setText("");
         txtValue.setText("");
@@ -432,8 +504,19 @@ public class ResidueHashView extends JFrame {
         lblResult.setText("");
     }
 
-    // Method to show the window
+    /**
+     * Muestra la ventana.
+     */
     public void showWindow() {
         setVisible(true);
+    }
+
+    /**
+     * Repinta el panel de visualización del árbol.
+     */
+    public void repaintTreePanel() {
+        if (treeVisualizationPanel != null) {
+            treeVisualizationPanel.repaint();
+        }
     }
 }

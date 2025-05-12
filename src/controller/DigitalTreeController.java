@@ -7,30 +7,26 @@ import view.TreeView;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.geom.Line2D;
-import java.util.*;
-import java.util.List;
 
+/**
+ * Controlador para el Árbol Digital.
+ * Se encarga de coordinar el modelo y la vista, y de manejar los eventos de usuario.
+ */
 public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
     private final DigitalTreeModel model;
     private final DigitalTreeView view;
     private TreeController parentController;
     private TreeView parentView;
 
-    // Constantes para la visualización
-    private static final int NODE_SIZE = 40;
-    private static final int VERTICAL_SPACING = 70;
-    private static final Color NODE_COLOR = new Color(255, 255, 255);
-    private static final Color NODE_BORDER_COLOR = new Color(70, 130, 180);
-    private static final Color LINE_COLOR = new Color(100, 100, 100);
-    private static final Font NODE_FONT = new Font("Segoe UI", Font.BOLD, 16);
+    // Variable para el texto que se mostrará en el panel de visualización
+    private String logText = "";
 
-    // Palabra actualmente resaltada
-    private String highlightedWord = null;
-
-    // Mapa para almacenar posiciones de nodos
-    private Map<DigitalTreeModel.BinaryNode, Point> nodePositions = new HashMap<>();
-
+    /**
+     * Constructor principal.
+     *
+     * @param model Modelo del árbol digital
+     * @param view Vista del árbol digital
+     */
     public DigitalTreeController(DigitalTreeModel model, DigitalTreeView view) {
         this.model = model;
         this.view = view;
@@ -49,19 +45,37 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
         updateVisualization();
     }
 
-    // Constructor adicional para el controlador padre
-    public DigitalTreeController(DigitalTreeModel model, DigitalTreeView view, TreeController parentController, TreeView parentView) {
+    /**
+     * Constructor adicional que recibe referencias al controlador y vista padre.
+     *
+     * @param model Modelo del árbol digital
+     * @param view Vista del árbol digital
+     * @param parentController Controlador padre
+     * @param parentView Vista padre
+     */
+    public DigitalTreeController(DigitalTreeModel model, DigitalTreeView view,
+                                 TreeController parentController, TreeView parentView) {
         this(model, view);
         this.parentController = parentController;
         this.parentView = parentView;
     }
 
-    // Setter para el controlador padre
+    /**
+     * Configura el controlador y vista padre.
+     *
+     * @param parentController Controlador padre
+     * @param parentView Vista padre
+     */
     public void setParentController(TreeController parentController, TreeView parentView) {
         this.parentController = parentController;
         this.parentView = parentView;
     }
 
+    /**
+     * Maneja el evento de insertar una palabra.
+     *
+     * @param e Evento de acción
+     */
     private void insertWord(ActionEvent e) {
         String word = view.getWordToInsert();
 
@@ -70,12 +84,15 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             return;
         }
 
+        // Crear un área de texto temporal para capturar los mensajes de log
+        JTextArea logArea = new JTextArea();
+
+        // Insertar la palabra y obtener si es nueva
         boolean isNewWord = model.insert(word);
 
         if (isNewWord) {
             view.setResultMessage("Palabra \"" + word + "\" insertada correctamente", true);
-            // Destacar la palabra recién insertada
-            highlightedWord = word;
+            logText = logArea.getText();
         } else {
             view.setResultMessage("La palabra \"" + word + "\" ya existe en el árbol", false);
         }
@@ -84,6 +101,11 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
         updateVisualization();
     }
 
+    /**
+     * Maneja el evento de buscar una palabra.
+     *
+     * @param e Evento de acción
+     */
     private void searchWord(ActionEvent e) {
         String word = view.getWordToSearch();
 
@@ -96,16 +118,18 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
 
         if (found) {
             view.setResultMessage("Palabra \"" + word + "\" encontrada en el árbol", true);
-            // Destacar la palabra encontrada
-            highlightedWord = word;
         } else {
             view.setResultMessage("Palabra \"" + word + "\" no encontrada", false);
-            highlightedWord = null;
         }
 
         updateVisualization();
     }
 
+    /**
+     * Maneja el evento de eliminar una palabra.
+     *
+     * @param e Evento de acción
+     */
     private void deleteWord(ActionEvent e) {
         String word = view.getWordToDelete();
 
@@ -114,25 +138,28 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             return;
         }
 
+        // Crear un área de texto temporal para capturar los mensajes de log
+        JTextArea logArea = new JTextArea();
+
         boolean deleted = model.delete(word);
 
         if (deleted) {
             view.setResultMessage("Palabra \"" + word + "\" eliminada correctamente", true);
+            logText = logArea.getText();
         } else {
             view.setResultMessage("Palabra \"" + word + "\" no encontrada", false);
         }
 
         view.clearInputFields();
-        highlightedWord = null;
         updateVisualization();
     }
 
+    /**
+     * Maneja el evento de limpiar todo el árbol.
+     *
+     * @param e Evento de acción
+     */
     private void clearTrie(ActionEvent e) {
-        if (model.getWordCount() == 0) {
-            view.setResultMessage("El árbol ya está vacío", false);
-            return;
-        }
-
         int option = JOptionPane.showConfirmDialog(
                 view,
                 "¿Está seguro de que desea eliminar todas las palabras del árbol?",
@@ -145,11 +172,16 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             model.clear();
             view.setResultMessage("El árbol ha sido limpiado correctamente", true);
             view.clearInputFields();
-            highlightedWord = null;
+            logText = "";
             updateVisualization();
         }
     }
 
+    /**
+     * Maneja el evento de volver al menú anterior.
+     *
+     * @param e Evento de acción
+     */
     private void goBack(ActionEvent e) {
         view.dispose();
         if (parentView != null) {
@@ -159,164 +191,60 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
         }
     }
 
+    /**
+     * Actualiza la visualización del árbol.
+     */
     private void updateVisualization() {
+        // Actualizar la estructura del árbol para la vista
         view.updateTrieVisualization(model.getTrieStructure());
+
+        // Actualizar la lista de palabras (vacía en esta implementación)
         view.updateWordList(model.getAllWords());
-        // Limpiar posiciones de nodos cuando se actualiza la visualización
-        nodePositions.clear();
     }
 
+    /**
+     * Inicializa la vista.
+     */
     public void initView() {
         SwingUtilities.invokeLater(() -> {
             view.showWindow();
         });
     }
 
+    /**
+     * Método para pintar la visualización del árbol.
+     * Este método es llamado por la vista para dibujar el árbol.
+     *
+     * @param g2d Contexto gráfico 2D
+     * @param width Ancho del área de dibujo
+     * @param height Alto del área de dibujo
+     */
     @Override
     public void paintTreeVisualization(Graphics2D g2d, int width, int height) {
-        // Obtener el árbol binario del modelo
-        DigitalTreeModel.BinaryNode root = model.getBinaryRoot();
+        // Configura el ancho del área de dibujo en el árbol
+        model.setWidth(width);
 
-        // Si no hay árbol binario, mostrar mensaje
-        if (root == null) {
-            g2d.setColor(Color.GRAY);
-            g2d.setFont(new Font("Segoe UI", Font.ITALIC, 16));
-            String message = "Árbol vacío";
-            g2d.drawString(message, width / 2 - 40, height / 2);
-            return;
-        }
+        // Dibuja el árbol
+        model.getArbol().dibujar(g2d);
 
-        // Mostrar la codificación en la parte superior (ya está mostrándose)
-        // displayCodification(g2d, width);
-
-        // Limpiar posiciones de nodos cuando se dibuja
-        nodePositions.clear();
-
-        // Calcular posiciones de los nodos
-        calculateNodePositions(root, width / 2, 120, width / 4);
-
-        // Dibujar el árbol
-        drawBinaryTree(g2d, root);
-    }
-
-    // Método para mostrar la codificación en la parte superior (si necesitas añadirla)
-    private void displayCodification(Graphics2D g2d, int width) {
-        Map<String, Object> trieData = model.getTrieStructure();
-        if (trieData.containsKey("wordCodes")) {
-            @SuppressWarnings("unchecked")
-            Map<String, String> wordCodes = (Map<String, String>) trieData.get("wordCodes");
-
-            // Configurar fuente y color
-            g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        // Si hay texto de log, mostrarlo en la parte inferior
+        if (logText != null && !logText.isEmpty()) {
             g2d.setColor(Color.BLACK);
+            g2d.setFont(new Font("Monospaced", Font.PLAIN, 12));
 
-            // Posición inicial
-            int startX = 20;
-            int startY = 20;
+            String[] lines = logText.split("\n");
+            int y = height - 20 * lines.length;
 
-            // Título
-            g2d.drawString("Codificación:", startX, startY);
-            startY += 15;
-
-            // Mostrar cada código
-            for (Map.Entry<String, String> entry : wordCodes.entrySet()) {
-                String label = entry.getKey() + " = " + entry.getValue();
-                g2d.drawString(label, startX, startY);
-                startY += 15;
+            for (String line : lines) {
+                g2d.drawString(line, 20, y);
+                y += 15;
             }
         }
     }
 
-    // Método para calcular posiciones de los nodos
-    private void calculateNodePositions(DigitalTreeModel.BinaryNode node, int x, int y, int offset) {
-        if (node == null) return;
-
-        // Almacenar la posición del nodo en el mapa
-        nodePositions.put(node, new Point(x, y));
-
-        if (node.left != null) {
-            calculateNodePositions(node.left, x - offset, y + VERTICAL_SPACING, offset / 2);
-        }
-
-        if (node.right != null) {
-            calculateNodePositions(node.right, x + offset, y + VERTICAL_SPACING, offset / 2);
-        }
-    }
-
-    // Método para dibujar el árbol binario
-    private void drawBinaryTree(Graphics2D g2d, DigitalTreeModel.BinaryNode node) {
-        if (node == null) return;
-
-        // Obtener posición del nodo actual
-        Point nodePoint = nodePositions.get(node);
-        if (nodePoint == null) return;
-
-        int nodeX = nodePoint.x;
-        int nodeY = nodePoint.y;
-
-        // Dibujar conexiones primero (líneas a los hijos)
-        if (node.left != null) {
-            // Obtener posición del hijo izquierdo
-            Point leftPoint = nodePositions.get(node.left);
-            if (leftPoint != null) {
-                int leftX = leftPoint.x;
-                int leftY = leftPoint.y;
-
-                g2d.setColor(LINE_COLOR);
-                g2d.setStroke(new BasicStroke(2.0f));
-                g2d.draw(new Line2D.Double(nodeX, nodeY + NODE_SIZE / 2, leftX, leftY - NODE_SIZE / 2));
-
-                // Dibujar el valor de bit (0) en la línea
-                int textX = (nodeX + leftX) / 2 - 10;
-                int textY = (nodeY + leftY) / 2;
-                g2d.setFont(new Font("Segoe UI", Font.BOLD, 14));
-                g2d.setColor(Color.BLACK);
-                g2d.drawString("0", textX, textY);
-            }
-        }
-
-        if (node.right != null) {
-            // Obtener posición del hijo derecho
-            Point rightPoint = nodePositions.get(node.right);
-            if (rightPoint != null) {
-                int rightX = rightPoint.x;
-                int rightY = rightPoint.y;
-
-                g2d.setColor(LINE_COLOR);
-                g2d.setStroke(new BasicStroke(2.0f));
-                g2d.draw(new Line2D.Double(nodeX, nodeY + NODE_SIZE / 2, rightX, rightY - NODE_SIZE / 2));
-
-                // Dibujar el valor de bit (1) en la línea
-                int textX = (nodeX + rightX) / 2 + 5;
-                int textY = (nodeY + rightY) / 2;
-                g2d.setFont(new Font("Segoe UI", Font.BOLD, 14));
-                g2d.setColor(Color.BLACK);
-                g2d.drawString("1", textX, textY);
-            }
-        }
-
-        // Dibujar el nodo
-        g2d.setColor(NODE_COLOR);
-        g2d.fillOval(nodeX - NODE_SIZE / 2, nodeY - NODE_SIZE / 2, NODE_SIZE, NODE_SIZE);
-        g2d.setColor(NODE_BORDER_COLOR);
-        g2d.setStroke(new BasicStroke(2.0f));
-        g2d.drawOval(nodeX - NODE_SIZE / 2, nodeY - NODE_SIZE / 2, NODE_SIZE, NODE_SIZE);
-
-        // Dibujar etiqueta del nodo
-        g2d.setFont(NODE_FONT);
-        g2d.setColor(Color.BLACK);
-        FontMetrics fm = g2d.getFontMetrics();
-        String label = node.label;
-        if (label != null && !label.isEmpty()) {
-            g2d.drawString(label, nodeX - fm.stringWidth(label) / 2, nodeY + fm.getAscent() / 2 - 2);
-        }
-
-        // Recursivamente dibujar subárboles
-        drawBinaryTree(g2d, node.left);
-        drawBinaryTree(g2d, node.right);
-    }
-
-    // Main para pruebas
+    /**
+     * Método main para pruebas independientes.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
@@ -329,7 +257,6 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             DigitalTreeView view = new DigitalTreeView();
             DigitalTreeController controller = new DigitalTreeController(model, view);
 
-            controller.updateVisualization();
             controller.initView();
         });
     }

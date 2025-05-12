@@ -13,6 +13,9 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.util.List;
 import java.util.Map;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
 
 public class HuffmanTreeController implements TreeVisualizer {
     private final HuffmanTreeModel model;
@@ -45,6 +48,7 @@ public class HuffmanTreeController implements TreeVisualizer {
         this.view.addDecompressListener(this::decompressText);
         this.view.addClearListener(this::clearAll);
         this.view.addBackListener(this::goBack);
+        this.view.addSaveImageListener(this::saveTreeAsImage); // Nuevo: listener para guardar imagen
     }
 
     /**
@@ -168,100 +172,266 @@ public class HuffmanTreeController implements TreeVisualizer {
         }
     }
 
-    // Método para actualizar la visualización
-    public void updateVisualization() {
-        // Actualizar la tabla de códigos
-        Map<Character, String> encodingMap = model.getEncodingMap();
-        Map<Character, Integer> frequencyMap = model.getFrequencyMap();
-        view.updateCodesTable(encodingMap, frequencyMap);
-
-        // Calcular tasa de compresión para las estadísticas
-        String original = view.getInputText();
-        String compressed = view.getCompressedText();
-        double compressionRate = 0;
-
-        if (!original.isEmpty() && !compressed.isEmpty()) {
-            double originalBits = original.length() * 8;
-            double compressedBits = compressed.length();
-            compressionRate = 100 - (compressedBits / originalBits * 100);
+    // Nuevo: Método para guardar el árbol como imagen
+    private void saveTreeAsImage(ActionEvent e) {
+        if (model.getRoot() == null) {
+            JOptionPane.showMessageDialog(view, "No hay árbol para guardar.");
+            return;
         }
 
-        // Actualizar estadísticas
-        view.updateStatistics(model.size(), model.getHeight(), compressionRate);
+        JPanel treePanel = view.getTreeVisualizationPanel();
 
-        // Repintar el panel de visualización
+        // Crear imagen del panel
+        BufferedImage image = new BufferedImage(treePanel.getWidth(), treePanel.getHeight(),
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = image.createGraphics();
+        treePanel.paint(g2d);
+        g2d.dispose();
+
+        // Selector de archivos
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar árbol como imagen");
+        int userSelection = fileChooser.showSaveDialog(view);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            try {
+                File fileToSave = fileChooser.getSelectedFile();
+                if (!fileToSave.getName().toLowerCase().endsWith(".png")) {
+                    fileToSave = new File(fileToSave.getAbsolutePath() + ".png");
+                }
+                ImageIO.write(image, "png", fileToSave);
+                view.setResultMessage("Árbol guardado exitosamente como imagen.", true);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                view.setResultMessage("Error al guardar la imagen: " + ex.getMessage(), false);
+            }
+        }
+    }
+
+// Método para actual
+// Método para actualizar la visualización
+public void updateVisualization() {
+    // Actualizar la tabla de códigos
+    Map<Character, String> encodingMap = model.getEncodingMap();
+    Map<Character, Integer> frequencyMap = model.getFrequencyMap();
+    view.updateCodesTable(encodingMap, frequencyMap);
+
+    // Calcular tasa de compresión para las estadísticas
+    String original = view.getInputText();
+    String compressed = view.getCompressedText();
+    double compressionRate = 0;
+
+    if (!original.isEmpty() && !compressed.isEmpty()) {
+        double originalBits = original.length() * 8;
+        double compressedBits = compressed.length();
+        compressionRate = 100 - (compressedBits / originalBits * 100);
+    }
+
+    // Actualizar estadísticas
+    view.updateStatistics(model.size(), model.getHeight(), compressionRate);
+
+    // Repintar el panel de visualización
+    JPanel visualizationPanel = view.getTreeVisualizationPanel();
+    visualizationPanel.repaint();
+}
+
+    // Implementación del método de la interfaz TreeVisualizer para dibujar el árbol
+    @Override
+    public void paintTreeVisualization(Graphics2D g2d, int width, int height) {
+        // Limpiar el panel
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, width, height);
+
+        // Si no hay nodos para visualizar, mostrar mensaje
+        if (model.getRoot() == null) {
+            g2d.setColor(Color.GRAY);
+            g2d.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+            g2d.drawString("Construya el árbol para ver la visualización", width / 2 - 150, height / 2);
+            return;
+        }
+
+        // Usar el estilo mejorado inspirado en HuffmanPanel
+        g2d.setStroke(new BasicStroke(3)); // Líneas más gruesas
+        g2d.setFont(new Font("Arial", Font.BOLD, 18)); // Texto más grande
+        drawTree(g2d, model.getRoot(), width / 2, 50, width / 4);
+
+        // Si se ha accedido a un nodo específico, resaltarlo
+        if (lastAccessedChar != null && lastAccessedNode != null) {
+            drawHighlightPath(g2d, width, height);
+        }
+    }
+
+    // Método para dibujar el árbol de Huffman con estilo mejorado
+    private void drawTree(Graphics2D g, TreeNode node, int x, int y, int offset) {
+        if (node == null) return;
+
+        g.setColor(Color.BLACK);
+        if (node.left != null) {
+            g.drawLine(x, y, x - offset, y + 100); // Más espacio vertical
+            g.setColor(Color.BLUE);
+            g.drawString("0", (x + x - offset) / 2 - 15, (y + y + 100) / 2 - 10); // Número 0 más centrado
+            g.setColor(Color.BLACK);
+            drawTree(g, node.left, x - offset, y + 100, offset / 2);
+        }
+        if (node.right != null) {
+            g.drawLine(x, y, x + offset, y + 100);
+            g.setColor(Color.RED);
+            g.drawString("1", (x + x + offset) / 2 + 5, (y + y + 100) / 2 - 10); // Número 1 más centrado
+            g.setColor(Color.BLACK);
+            drawTree(g, node.right, x + offset, y + 100, offset / 2);
+        }
+
+        // Dibujar nodo (círculo azul claro grande)
+        int nodeRadius = 30; // radio 30 → diámetro 60
+        g.setColor(new Color(173, 216, 230)); // Color azul claro
+        g.fillOval(x - nodeRadius, y - nodeRadius, 2 * nodeRadius, 2 * nodeRadius);
+        g.setColor(Color.BLACK);
+        g.drawOval(x - nodeRadius, y - nodeRadius, 2 * nodeRadius, 2 * nodeRadius);
+
+        // Mostrar contenido del nodo
+        if (node.character != null) {
+            // Para nodos hoja, mostrar el carácter
+            String charDisplay = formatCharacter(node.character);
+            int textWidth = g.getFontMetrics().stringWidth(charDisplay);
+            g.drawString(charDisplay, x - textWidth / 2, y + 6);
+        } else {
+            // Para nodos internos, mostrar la frecuencia
+            String freqDisplay = String.valueOf(node.frequency);
+            int textWidth = g.getFontMetrics().stringWidth(freqDisplay);
+            g.drawString(freqDisplay, x - textWidth / 2, y + 6);
+        }
+    }
+
+    // Método para dibujar el camino destacado
+    private void drawHighlightPath(Graphics2D g2d, int width, int height) {
+        if (lastAccessedChar == null || lastAccessedNode == null) {
+            return;
+        }
+
+        // Dibujar información del código en la parte inferior
+        int margin = 20;
+        int startY = height - 80;
+
+        // Obtener el código Huffman del caracter
+        String huffmanCode = model.getEncodingMap().get(lastAccessedChar);
+        if (huffmanCode == null) {
+            return;
+        }
+
+        // Dibujar un recuadro para la información
+        g2d.setColor(new Color(236, 240, 241, 200)); // Color de fondo semi-transparente
+        g2d.fillRect(margin, startY - 30, width - margin * 2, 60);
+        g2d.setColor(Color.BLACK);
+        g2d.drawRect(margin, startY - 30, width - margin * 2, 60);
+
+        // Dibujar texto informativo
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        String charDisplay = formatCharacter(lastAccessedChar);
+        g2d.drawString("Caracter: " + charDisplay, margin + 10, startY - 10);
+        g2d.drawString("Código Huffman: " + huffmanCode, margin + 10, startY + 10);
+
+        // Calcular y mostrar ahorro
+        int regularBits = 8; // 8 bits en codificación estándar
+        int huffmanBits = huffmanCode.length(); // bits en codificación Huffman
+        double savingPercentage = ((regularBits - huffmanBits) / (double) regularBits) * 100;
+
+        g2d.drawString(String.format("Ahorro: %d bits → %d bits (%.1f%%)",
+                regularBits, huffmanBits, savingPercentage), margin + 10, startY + 30);
+    }
+
+    // Formatear caracteres especiales para visualización
+    private String formatCharacter(Character c) {
+        if (c == ' ') {
+            return "[esp]";
+        } else if (c == '\n') {
+            return "[nl]";
+        } else if (c == '\t') {
+            return "[tab]";
+        } else if (c == '\r') {
+            return "[ret]";
+        } else {
+            return c.toString();
+        }
+    }
+
+    /**
+     * Método para resaltar un nodo con un carácter específico
+     */
+    public void highlightNode(Character c) {
+        lastAccessedChar = c;
+        lastAccessedNode = model.findNode(model.getRoot(), c);
+
+        // Resaltar en la tabla si existe
+        if (lastAccessedNode != null) {
+            for (int i = 0; i < view.getTableRowCount(); i++) {
+                String charCell = view.getTableValueAt(i, 0).toString();
+                if (matchesCharacter(charCell, c)) {
+                    view.highlightRow(i);
+                    break;
+                }
+            }
+        }
+
         JPanel visualizationPanel = view.getTreeVisualizationPanel();
         visualizationPanel.repaint();
     }
 
     /**
-     * Método para ejecutar pruebas automáticas con textos predefinidos
-     *
-     * @param testTexts Array de textos de prueba
+     * Compara un carácter con su representación en la tabla
      */
-    public void runTestCases(String[] testTexts) {
-        if (testTexts == null || testTexts.length == 0) {
-            view.setResultMessage("No hay casos de prueba para ejecutar", false);
+    private boolean matchesCharacter(String cellText, Character c) {
+        if (c == ' ' && cellText.equals("[espacio]")) {
+            return true;
+        } else if (c == '\n' && cellText.equals("[salto de línea]")) {
+            return true;
+        } else if (c == '\t' && cellText.equals("[tabulador]")) {
+            return true;
+        } else if (c == '\r' && cellText.equals("[retorno]")) {
+            return true;
+        } else {
+            return cellText.equals(c.toString());
+        }
+    }
+
+    // Opcional: Agregar método para simplificar la creación de árboles con textos pequeños
+    public void buildAndVisualizeTree(String text) {
+        if (text.isEmpty()) {
+            view.setResultMessage("Por favor, ingrese un texto para construir el árbol", false);
             return;
         }
 
-        StringBuilder results = new StringBuilder();
-        results.append("Resultados de pruebas automáticas:\n\n");
+        // Pasar a minúsculas y limpiar caracteres no alfabéticos (como en HuffmanCompressor)
+        text = text.toLowerCase().replaceAll("[^a-z]", "");
 
-        for (int i = 0; i < testTexts.length; i++) {
-            String text = testTexts[i];
-            results.append("Caso de prueba #").append(i + 1).append(":\n");
-            results.append("Texto original (").append(text.length()).append(" caracteres): ");
-
-            // Si el texto es muy largo, truncarlo para la visualización
-            if (text.length() > 50) {
-                results.append(text.substring(0, 47)).append("...\n");
-            } else {
-                results.append(text).append("\n");
-            }
-
-            // Construir árbol y comprimir
-            model.buildTree(text);
-            String compressed = model.compress(text);
-            String decompressed = model.decompress(compressed);
-
-            // Calcular estadísticas
-            double originalBits = text.length() * 8;
-            double compressedBits = compressed.length();
-            double compressionRate = 100 - (compressedBits / originalBits * 100);
-
-            results.append("Bits originales: ").append((int) originalBits).append("\n");
-            results.append("Bits comprimidos: ").append((int) compressedBits).append("\n");
-            results.append("Tasa de compresión: ").append(String.format("%.2f%%", compressionRate)).append("\n");
-
-            // Verificar que la descompresión es correcta
-            boolean verificationOk = text.equals(decompressed);
-            results.append("Verificación: ").append(verificationOk ? "CORRECTA" : "FALLIDA").append("\n\n");
-
-            // Si es el último caso de prueba, mostrar el resultado en la UI
-            if (i == testTexts.length - 1) {
-                view.setInputText(text);
-                view.setCompressedText(compressed);
-                view.setDecompressedText(decompressed);
-                updateVisualization();
-            }
+        if (text.isEmpty()) {
+            view.setResultMessage("El texto debe contener al menos una letra (a-z)", false);
+            return;
         }
 
-        // Mostrar resultados en un diálogo
-        JTextArea textArea = new JTextArea(results.toString());
-        textArea.setEditable(false);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
+        // Establecer el texto en la vista
+        view.setInputText(text);
 
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(500, 400));
+        // Construir el árbol
+        model.buildTree(text);
 
-        JOptionPane.showMessageDialog(
-                view,
-                scrollPane,
-                "Resultados de Pruebas Automáticas",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        // Comprimir el texto
+        String compressed = model.compress(text);
+        view.setCompressedText(compressed);
+
+        // Descomprimir el texto como verificación
+        String decompressed = model.decompress(compressed);
+        view.setDecompressedText(decompressed);
+
+        // Calcular y mostrar estadísticas
+        double originalBits = text.length() * 5; // a-z = 5 bits
+        double compressedBits = compressed.length();
+        double compressionRate = 100 - (compressedBits / originalBits * 100);
+        view.updateStatistics(model.size(), model.getHeight(), compressionRate);
+
+        // Actualizar la visualización
+        updateVisualization();
+
+        view.setResultMessage("Árbol construido y texto codificado con éxito", true);
     }
 
     /**
@@ -420,270 +590,6 @@ public class HuffmanTreeController implements TreeVisualizer {
         }
     }
 
-    // Implementación del método de la interfaz TreeVisualizer para dibujar el árbol
-    @Override
-    public void paintTreeVisualization(Graphics2D g2d, int width, int height) {
-        // Limpiar el panel
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(0, 0, width, height);
-
-        // Si no hay nodos para visualizar, mostrar mensaje
-        if (model.getRoot() == null) {
-            g2d.setColor(Color.GRAY);
-            g2d.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-            g2d.drawString("Construya el árbol para ver la visualización", width / 2 - 150, height / 2);
-            return;
-        }
-
-        // Dibujar el árbol
-        drawTree(g2d, width, height);
-
-        // Si se ha accedido a un nodo específico, resaltarlo
-        if (lastAccessedChar != null && lastAccessedNode != null) {
-            drawHighlightPath(g2d, width, height);
-        }
-    }
-
-    // Método para dibujar el árbol de Huffman
-    private void drawTree(Graphics2D g2d, int width, int height) {
-        // Configuración para dibujar el árbol
-        int nodeWidth = 50;
-        int nodeHeight = 50;
-        int verticalSpace = 80;
-        int initialY = 50;
-
-        // Calcular la altura del árbol
-        int treeHeight = model.getHeight();
-
-        // Obtener todos los nodos
-        List<TreeNode> allNodes = model.getAllNodes();
-
-        // Ordenar por nivel para dibujar correctamente
-        allNodes.sort((n1, n2) -> Integer.compare(n1.level, n2.level));
-
-        // Mapa para rastrear la posición X de cada nodo basado en su nivel
-        int[] levelWidth = new int[treeHeight + 1];
-        int[] levelCount = new int[treeHeight + 1];
-
-        // Inicializar los arrays
-        for (int i = 0; i <= treeHeight; i++) {
-            levelWidth[i] = width / (int) Math.pow(2, i);
-            levelCount[i] = 0;
-        }
-
-        // Crear un mapa temporal para rastrear la posición X,Y de cada nodo
-        int[][] nodePositions = new int[allNodes.size()][2];
-
-        // Primera pasada: calcular posiciones
-        for (int i = 0; i < allNodes.size(); i++) {
-            TreeNode node = allNodes.get(i);
-            int level = node.level;
-            int x = levelWidth[level - 1] * levelCount[level - 1] + levelWidth[level - 1] / 2;
-            int y = initialY + (level - 1) * verticalSpace;
-
-            // Guardar posición
-            nodePositions[i][0] = x;
-            nodePositions[i][1] = y;
-
-            // Incrementar el contador de nodos en este nivel
-            levelCount[level - 1]++;
-        }
-
-        // Segunda pasada: dibujar conexiones
-        for (int i = 0; i < allNodes.size(); i++) {
-            TreeNode node = allNodes.get(i);
-
-            // Dibujar conexiones con hijos
-            if (node.left != null) {
-                int childIndex = findNodeIndex(allNodes, node.left);
-                if (childIndex != -1) {
-                    int startX = nodePositions[i][0];
-                    int startY = nodePositions[i][1] + nodeHeight;
-                    int endX = nodePositions[childIndex][0];
-                    int endY = nodePositions[childIndex][1];
-
-                    // Dibujar línea
-                    g2d.setColor(Color.BLACK);
-                    g2d.drawLine(startX, startY, endX, endY);
-
-                    // Dibujar etiqueta "0" en la línea izquierda
-                    g2d.setColor(Color.BLUE);
-                    g2d.drawString("0", (startX + endX) / 2 - 10, (startY + endY) / 2);
-                }
-            }
-
-            if (node.right != null) {
-                int childIndex = findNodeIndex(allNodes, node.right);
-                if (childIndex != -1) {
-                    int startX = nodePositions[i][0];
-                    int startY = nodePositions[i][1] + nodeHeight;
-                    int endX = nodePositions[childIndex][0];
-                    int endY = nodePositions[childIndex][1];
-
-                    // Dibujar línea
-                    g2d.setColor(Color.BLACK);
-                    g2d.drawLine(startX, startY, endX, endY);
-
-                    // Dibujar etiqueta "1" en la línea derecha
-                    g2d.setColor(Color.RED);
-                    g2d.drawString("1", (startX + endX) / 2 + 5, (startY + endY) / 2);
-                }
-            }
-        }
-
-        // Tercera pasada: dibujar nodos
-        for (int i = 0; i < allNodes.size(); i++) {
-            TreeNode node = allNodes.get(i);
-            int x = nodePositions[i][0];
-            int y = nodePositions[i][1];
-
-            drawNode(g2d, node, x, y, nodeWidth, nodeHeight);
-        }
-    }
-
-    // Método para encontrar el índice de un nodo en la lista
-    private int findNodeIndex(List<TreeNode> nodes, TreeNode target) {
-        for (int i = 0; i < nodes.size(); i++) {
-            if (nodes.get(i) == target) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    // Método para dibujar un nodo individual
-    private void drawNode(Graphics2D g2d, TreeNode node, int x, int y, int width, int height) {
-        // Definir color según si es un nodo interno o hoja
-        boolean isLeaf = (node.character != null);
-        boolean isHighlighted = (lastAccessedNode != null && node == lastAccessedNode);
-
-        Color nodeColor;
-        if (isHighlighted) {
-            nodeColor = new Color(41, 128, 185); // Azul resaltado
-        } else if (isLeaf) {
-            nodeColor = new Color(46, 204, 113); // Verde para hojas
-        } else {
-            nodeColor = new Color(52, 152, 219); // Azul para nodos internos
-        }
-
-        // Dibujar el círculo del nodo
-        g2d.setColor(nodeColor);
-        g2d.fillOval(x - width / 2, y, width, height);
-
-        // Dibujar el borde
-        g2d.setColor(Color.BLACK);
-        g2d.drawOval(x - width / 2, y, width, height);
-
-        // Dibujar el contenido del nodo
-        g2d.setColor(Color.WHITE);
-        String nodeText;
-
-        if (isLeaf) {
-            // Para caracteres especiales, mostrar de forma legible
-            if (node.character == ' ') {
-                nodeText = "[esp]";
-            } else if (node.character == '\n') {
-                nodeText = "[nl]";
-            } else if (node.character == '\t') {
-                nodeText = "[tab]";
-            } else {
-                nodeText = node.character.toString();
-            }
-        } else {
-            nodeText = String.valueOf(node.frequency);
-        }
-
-        FontMetrics fm = g2d.getFontMetrics();
-        int textWidth = fm.stringWidth(nodeText);
-        int textHeight = fm.getHeight();
-        g2d.drawString(nodeText, x - textWidth / 2, y + height / 2 + textHeight / 4);
-
-        // Si es una hoja, mostrar también la frecuencia debajo
-        if (isLeaf) {
-            String freqText = "(" + node.frequency + ")";
-            int freqWidth = fm.stringWidth(freqText);
-            g2d.setFont(g2d.getFont().deriveFont(Font.PLAIN, 10));
-            g2d.drawString(freqText, x - freqWidth / 2, y + height + 12);
-            g2d.setFont(g2d.getFont().deriveFont(Font.PLAIN, 12)); // Restaurar fuente
-        }
-    }
-
-    // Método para dibujar el camino destacado
-    private void drawHighlightPath(Graphics2D g2d, int width, int height) {
-        if (lastAccessedChar == null || lastAccessedNode == null) {
-            return;
-        }
-
-        // Dibujar información del código en la parte inferior
-        int margin = 20;
-        int startY = height - 80;
-
-        // Obtener el código Huffman del caracter
-        String huffmanCode = model.getEncodingMap().get(lastAccessedChar);
-        if (huffmanCode == null) {
-            return;
-        }
-
-        // Dibujar un recuadro para la información
-        g2d.setColor(new Color(236, 240, 241, 200)); // Color de fondo semi-transparente
-        g2d.fillRect(margin, startY - 30, width - margin * 2, 60);
-        g2d.setColor(Color.BLACK);
-        g2d.drawRect(margin, startY - 30, width - margin * 2, 60);
-
-        // Dibujar texto informativo
-        g2d.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        String charDisplay = lastAccessedChar == ' ' ? "[espacio]" : lastAccessedChar.toString();
-        g2d.drawString("Caracter: " + charDisplay, margin + 10, startY - 10);
-        g2d.drawString("Código Huffman: " + huffmanCode, margin + 10, startY + 10);
-
-        // Calcular y mostrar ahorro
-        int regularBits = 8; // 8 bits en codificación estándar
-        int huffmanBits = huffmanCode.length(); // bits en codificación Huffman
-        double savingPercentage = ((regularBits - huffmanBits) / (double) regularBits) * 100;
-
-        g2d.drawString(String.format("Ahorro: %d bits → %d bits (%.1f%%)",
-                regularBits, huffmanBits, savingPercentage), margin + 10, startY + 30);
-    }
-
-    /**
-     * Método para resaltar un nodo con un carácter específico
-     */
-    public void highlightNode(Character c) {
-        lastAccessedChar = c;
-        lastAccessedNode = model.findNode(model.getRoot(), c);
-
-        // Resaltar en la tabla si existe
-        if (lastAccessedNode != null) {
-            for (int i = 0; i < view.getTableRowCount(); i++) {
-                String charCell = view.getTableValueAt(i, 0).toString();
-                if (matchesCharacter(charCell, c)) {
-                    view.highlightRow(i);
-                    break;
-                }
-            }
-        }
-
-        JPanel visualizationPanel = view.getTreeVisualizationPanel();
-        visualizationPanel.repaint();
-    }
-
-    /**
-     * Compara un carácter con su representación en la tabla
-     */
-    private boolean matchesCharacter(String cellText, Character c) {
-        if (c == ' ' && cellText.equals("[espacio]")) {
-            return true;
-        } else if (c == '\n' && cellText.equals("[salto de línea]")) {
-            return true;
-        } else if (c == '\t' && cellText.equals("[tabulador]")) {
-            return true;
-        } else if (c == '\r' && cellText.equals("[retorno]")) {
-            return true;
-        } else {
-            return cellText.equals(c.toString());
-        }
-    }
-
     // Método para inicializar la vista
     public void initView() {
         SwingUtilities.invokeLater(() -> {
@@ -691,51 +597,73 @@ public class HuffmanTreeController implements TreeVisualizer {
         });
     }
 
-    public static void main(String[] args) {
-        HuffmanTreeModel model = new HuffmanTreeModel();
-        HuffmanTreeView view = new HuffmanTreeView();
-        HuffmanTreeController controller = new HuffmanTreeController(model, view);
-
-        // Menú emergente para seleccionar funcionalidad
-        String[] options = {
-                "Iniciar aplicación normal",
-                "Cargar ejemplos de demostración",
-                "Ejecutar pruebas automáticas",
-                "Ejecutar pruebas de rendimiento"
-        };
-
-        int selected = JOptionPane.showOptionDialog(
-                null,
-                "Seleccione una opción:",
-                "Árbol de Huffman",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-
-        controller.initView();
-
-        // Ejecutar la acción seleccionada
-        switch (selected) {
-            case 1:
-                controller.loadDemoExamples();
-                break;
-            case 2:
-                String[] testTexts = {
-                        "Este es un ejemplo simple para comprimir",
-                        "AAAAABBBBBCCCCCDDDDD",
-                        "En un lugar de la Mancha, de cuyo nombre no quiero acordarme..."
-                };
-                controller.runTestCases(testTexts);
-                break;
-            case 3:
-                controller.runPerformanceTests();
-                break;
-            default:
-                // Solo iniciar la aplicación sin hacer nada más
-                break;
+    /**
+     * Método para ejecutar pruebas automáticas con textos predefinidos
+     *
+     * @param testTexts Array de textos de prueba
+     */
+    public void runTestCases(String[] testTexts) {
+        if (testTexts == null || testTexts.length == 0) {
+            view.setResultMessage("No hay casos de prueba para ejecutar", false);
+            return;
         }
+
+        StringBuilder results = new StringBuilder();
+        results.append("Resultados de pruebas automáticas:\n\n");
+
+        for (int i = 0; i < testTexts.length; i++) {
+            String text = testTexts[i];
+            results.append("Caso de prueba #").append(i + 1).append(":\n");
+            results.append("Texto original (").append(text.length()).append(" caracteres): ");
+
+            // Si el texto es muy largo, truncarlo para la visualización
+            if (text.length() > 50) {
+                results.append(text.substring(0, 47)).append("...\n");
+            } else {
+                results.append(text).append("\n");
+            }
+
+            // Construir árbol y comprimir
+            model.buildTree(text);
+            String compressed = model.compress(text);
+            String decompressed = model.decompress(compressed);
+
+            // Calcular estadísticas
+            double originalBits = text.length() * 8;
+            double compressedBits = compressed.length();
+            double compressionRate = 100 - (compressedBits / originalBits * 100);
+
+            results.append("Bits originales: ").append((int) originalBits).append("\n");
+            results.append("Bits comprimidos: ").append((int) compressedBits).append("\n");
+            results.append("Tasa de compresión: ").append(String.format("%.2f%%", compressionRate)).append("\n");
+
+            // Verificar que la descompresión es correcta
+            boolean verificationOk = text.equals(decompressed);
+            results.append("Verificación: ").append(verificationOk ? "CORRECTA" : "FALLIDA").append("\n\n");
+
+            // Si es el último caso de prueba, mostrar el resultado en la UI
+            if (i == testTexts.length - 1) {
+                view.setInputText(text);
+                view.setCompressedText(compressed);
+                view.setDecompressedText(decompressed);
+                updateVisualization();
+            }
+        }
+
+        // Mostrar resultados en un diálogo
+        JTextArea textArea = new JTextArea(results.toString());
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(500, 400));
+
+        JOptionPane.showMessageDialog(
+                view,
+                scrollPane,
+                "Resultados de Pruebas Automáticas",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 }

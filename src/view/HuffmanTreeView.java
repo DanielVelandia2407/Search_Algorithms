@@ -27,6 +27,7 @@ public class HuffmanTreeView extends JFrame {
     private JButton decompressButton;
     private JButton clearButton;
     private JButton backButton;
+    private JButton saveImageButton; // Nuevo: botón para guardar imagen
     private JLabel resultMessageLabel;
     private JTable codesTable;
     private DefaultTableModel tableModel;
@@ -103,6 +104,11 @@ public class HuffmanTreeView extends JFrame {
         backButton = new JButton("Atrás");
         backButton.setToolTipText("Volver a la pantalla anterior");
         buttonPanel.add(backButton);
+
+        // Nuevo: Botón para guardar árbol como imagen
+        saveImageButton = new JButton("Guardar Árbol");
+        saveImageButton.setToolTipText("Guardar el árbol como imagen PNG");
+        buttonPanel.add(saveImageButton);
 
         panel.add(buttonPanel, BorderLayout.WEST);
 
@@ -240,6 +246,11 @@ public class HuffmanTreeView extends JFrame {
         backButton.addActionListener(listener);
     }
 
+    // Nuevo: método para agregar listener al botón guardar
+    public void addSaveImageListener(ActionListener listener) {
+        saveImageButton.addActionListener(listener);
+    }
+
     // Métodos para obtener datos de los campos
     public String getInputText() {
         return inputTextArea.getText();
@@ -339,7 +350,6 @@ public class HuffmanTreeView extends JFrame {
     public int getTableRowCount() {
         return tableModel.getRowCount();
     }
-
 
     public void setInputText(String text) {
         inputTextArea.setText(text);

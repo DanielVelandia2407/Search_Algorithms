@@ -113,31 +113,21 @@ public class TreeController {
         multipleResidueController.updateVisualization();
     }
 
-    // Método para abrir la vista del árbol de Huffman
     public void openHuffmanTree() {
-        // Ocultar esta vista (no cerrarla completamente)
         view.setVisible(false);
 
-        // Crear modelo y vista para el árbol de Huffman
         HuffmanTreeModel huffmanModel = new HuffmanTreeModel();
         HuffmanTreeView huffmanView = new HuffmanTreeView();
 
-        // Pasar las referencias al controlador y a la vista actual
         HuffmanTreeController huffmanController = new HuffmanTreeController(
                 huffmanModel,
                 huffmanView,
-                this,  // Pasar referencia a este controlador
-                view   // Pasar referencia a esta vista
+                this,
+                view
         );
 
-        // Inicializar la vista
-        huffmanController.initView();
 
-        // Opcionalmente cargar un ejemplo para demostración
-        String exampleText = "Este es un ejemplo para demostrar el algoritmo de compresión de Huffman";
-        huffmanView.setInputText(exampleText);
-        huffmanModel.buildTree(exampleText);
-        huffmanController.updateVisualization();
+        huffmanController.initView();
     }
 
     public void setMainView(MainView mainView) {

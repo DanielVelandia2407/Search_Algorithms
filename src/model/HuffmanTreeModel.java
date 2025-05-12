@@ -12,15 +12,22 @@ public class HuffmanTreeModel {
         public TreeNode right;
         public String code; // Código de Huffman (secuencia de 0s y 1s)
         public int level; // Nivel en el árbol (para visualización)
+        public int order; // Nuevo: orden de aparición para prioridad
 
         // Constructor para hojas (con caracteres)
-        public TreeNode(Character character, int frequency) {
+        public TreeNode(Character character, int frequency, int order) {
             this.character = character;
             this.frequency = frequency;
             this.left = null;
             this.right = null;
             this.code = "";
             this.level = 1;
+            this.order = order;
+        }
+
+        // Constructor para hojas (mantenemos el constructor original para compatibilidad)
+        public TreeNode(Character character, int frequency) {
+            this(character, frequency, Integer.MAX_VALUE);
         }
 
         // Constructor para nodos internos (suma de frecuencias)
@@ -31,12 +38,22 @@ public class HuffmanTreeModel {
             this.right = right;
             this.code = "";
             this.level = 1;
+            this.order = Integer.MAX_VALUE; // nodos internos tienen prioridad más baja
         }
 
-        // Para ordenar nodos por frecuencia (cola de prioridad)
+        // Para ordenar nodos por frecuencia y luego por orden de aparición
         @Override
         public int compareTo(TreeNode other) {
-            return this.frequency - other.frequency;
+            int freqComp = Integer.compare(this.frequency, other.frequency);
+            if (freqComp != 0) {
+                return freqComp;
+            }
+            return Integer.compare(this.order, other.order);
+        }
+
+        // Método para determinar si es una hoja
+        public boolean isLeaf() {
+            return left == null && right == null;
         }
 
         // Representación en string para depuración
@@ -54,26 +71,37 @@ public class HuffmanTreeModel {
     private Map<Character, String> encodingMap; // Mapeo caracter -> código
     private Map<String, Character> decodingMap; // Mapeo código -> caracter
     private Map<Character, Integer> frequencyMap; // Mapeo caracter -> frecuencia
+    private Map<Character, Integer> orderMap; // Nuevo: mapeo caracter -> orden de aparición
 
     public HuffmanTreeModel() {
         this.root = null;
         this.encodingMap = new HashMap<>();
         this.decodingMap = new HashMap<>();
         this.frequencyMap = new HashMap<>();
+        this.orderMap = new HashMap<>(); // Inicializar orderMap
     }
 
     // Método para construir el árbol a partir de un texto
     public void buildTree(String text) {
-        // Contar frecuencias
+        // Contar frecuencias y registrar orden de aparición
         frequencyMap.clear();
+        orderMap.clear();
+        int orderCounter = 0;
+
         for (char c : text.toCharArray()) {
             frequencyMap.put(c, frequencyMap.getOrDefault(c, 0) + 1);
+            if (!orderMap.containsKey(c)) {
+                orderMap.put(c, orderCounter++);
+            }
         }
 
-        // Crear nodos hoja
+        // Crear nodos hoja con orden de aparición
         PriorityQueue<TreeNode> queue = new PriorityQueue<>();
         for (Map.Entry<Character, Integer> entry : frequencyMap.entrySet()) {
-            queue.add(new TreeNode(entry.getKey(), entry.getValue()));
+            Character character = entry.getKey();
+            Integer frequency = entry.getValue();
+            Integer order = orderMap.get(character);
+            queue.add(new TreeNode(character, frequency, order));
         }
 
         // Construir el árbol
@@ -241,11 +269,16 @@ public class HuffmanTreeModel {
         return frequencyMap;
     }
 
-    // Limpiar todo el árbol
+    public Map<Character, Integer> getOrderMap() {
+        return orderMap;
+    }
+
+
     public void clear() {
         root = null;
         encodingMap.clear();
         decodingMap.clear();
         frequencyMap.clear();
+        orderMap.clear();
     }
 }
