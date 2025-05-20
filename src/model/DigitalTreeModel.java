@@ -1,5 +1,7 @@
 package model;
 
+import javax.swing.JTextArea;
+
 /**
  * Clase de adaptación que integra ArbolDigital con la arquitectura MVC del proyecto.
  * Sirve como proxy entre el controlador y la implementación real del árbol.
@@ -21,19 +23,13 @@ public class DigitalTreeModel {
      * @param word La palabra a insertar
      * @return true si la inserción fue exitosa
      */
-    public boolean insert(String word) {
-        // Usamos una cadena vacía para el JTextArea en este contexto
-        // ya que en nuestro adaptador no necesitamos mostrar mensajes en un área de texto específica
-        javax.swing.JTextArea tempArea = new javax.swing.JTextArea();
-
-        // Verificamos si la palabra ya existe
-        boolean exists = arbol.existeClave(word);
-
-        if (!exists) {
-            arbol.insertar(word, tempArea);
+    public boolean insert(String word, JTextArea area) {
+        if (!arbol.existeClave(word)) {
+            arbol.insertar(word, area);
             return true;
         }
-
+        // si ya existe, llama igual para que genere el mensaje
+        arbol.insertar(word, area);
         return false;
     }
 
@@ -53,17 +49,14 @@ public class DigitalTreeModel {
      * @param word La palabra a eliminar
      * @return true si la palabra se eliminó correctamente
      */
-    public boolean delete(String word) {
-        // Si la palabra no existe, no podemos eliminarla
-        if (!search(word)) {
-            return false;
+    public boolean delete(String word, JTextArea area) {
+        if (arbol.existeClave(word)) {
+            arbol.eliminar(word, area);
+            return true;
         }
-
-        // Eliminamos la palabra
-        javax.swing.JTextArea tempArea = new javax.swing.JTextArea();
-        arbol.eliminar(word, tempArea);
-
-        return true;
+        // para que area reciba el mensaje de “no existe”
+        arbol.eliminar(word, area);
+        return false;
     }
 
     /**

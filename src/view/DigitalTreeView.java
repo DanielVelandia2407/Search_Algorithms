@@ -33,7 +33,7 @@ public class DigitalTreeView extends JFrame {
 
     public DigitalTreeView() {
         // Configuración básica de la ventana
-        setTitle("Árbol Digital (Trie)");
+        setTitle("Árbol Digital");
         setSize(1000, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -84,7 +84,7 @@ public class DigitalTreeView extends JFrame {
         JScrollPane wordListScrollPane = new JScrollPane(txtWordList);
         wordListScrollPane.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
-                "Palabras en el Trie"));
+                "Claves en el Arbol Digital"));
 
         centerSplitPane.setLeftComponent(treeScrollPane);
         centerSplitPane.setRightComponent(wordListScrollPane);
@@ -98,7 +98,7 @@ public class DigitalTreeView extends JFrame {
         controlPanel.setBackground(new Color(240, 248, 255));
 
         // Fila 1: Insertar palabra
-        JLabel lblInsert = new JLabel("Insertar palabra:");
+        JLabel lblInsert = new JLabel("Insertar clave:");
         txtWordToInsert = new JTextField(15);
         btnInsertWord = createButton("Insertar", new Color(46, 204, 113));
 
@@ -107,7 +107,7 @@ public class DigitalTreeView extends JFrame {
         controlPanel.add(btnInsertWord);
 
         // Fila 2: Buscar palabra
-        JLabel lblSearch = new JLabel("Buscar palabra:");
+        JLabel lblSearch = new JLabel("Buscar clave:");
         txtWordToSearch = new JTextField(15);
         btnSearchWord = createButton("Buscar", new Color(52, 152, 219));
 
@@ -116,7 +116,7 @@ public class DigitalTreeView extends JFrame {
         controlPanel.add(btnSearchWord);
 
         // Fila 3: Eliminar palabra
-        JLabel lblDelete = new JLabel("Eliminar palabra:");
+        JLabel lblDelete = new JLabel("Eliminar clave:");
         txtWordToDelete = new JTextField(15);
         btnDeleteWord = createButton("Eliminar", new Color(231, 76, 60));
 
@@ -219,10 +219,10 @@ public class DigitalTreeView extends JFrame {
     // Actualizar lista de palabras
     public void updateWordList(String[] words) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Palabras en el Trie:\n\n");
+        sb.append("Claves en el Trie:\n\n");
 
         if (words.length == 0) {
-            sb.append("(No hay palabras almacenadas)");
+            sb.append("(No hay claves almacenadas)");
         } else {
             for (String word : words) {
                 sb.append("• ").append(word).append("\n");
