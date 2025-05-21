@@ -4,79 +4,150 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HashExpansionModel {
-    private int columnas;
+    private int n; // columnas
     private final int filas = 2;
-    private int n;
-    private double densidadMaxima;
-    private Integer[][] estructura;
-    private List<List<Integer>> colisiones;
-    private int numInsertados;
+    private double densMaxInsert;
+    private double densMinDelete;
 
-    public HashExpansionModel(int columnas, double densidadMaxima) {
-        this.columnas = columnas;
-        this.n = columnas;
-        this.densidadMaxima = densidadMaxima;
-        this.estructura = new Integer[filas][columnas];
-        this.colisiones = new ArrayList<>();
-        for (int i = 0; i < columnas; i++) {
-            colisiones.add(new ArrayList<>());
-        }
-        this.numInsertados = 0;
+    private Integer[][] tabla;
+    private List<List<Integer>> colisiones;
+    private List<Integer> claves;
+
+    public HashExpansionModel(int n, double densMaxInsert, double densMinDelete) {
+        this.n = n;
+        this.densMaxInsert = densMaxInsert;
+        this.densMinDelete = densMinDelete;
+        reinicializar();
     }
 
-    public List<String> insertarClave(int clave) {
+    private void reinicializar() {
+        tabla = new Integer[filas][n];
+        colisiones = new ArrayList<>();
+        for (int i = 0; i < n; i++) colisiones.add(new ArrayList<>());
+        claves = new ArrayList<>();
+    }
+
+    public List<String> insertar(int clave) {
         List<String> pasos = new ArrayList<>();
-        double densidadActual = obtenerDensidad();
-        pasos.add("Densidad actual: " + String.format("%.2f", densidadActual));
+
+        int ocupActual = claves.size() + contarColisiones();
+        double densAntes = (double) ocupActual / (filas * n);
+        pasos.add(String.format("Densidad antes: %.2f", densAntes));
+
+        double densDesp = (double) (ocupActual + 1) / (filas * n);
+        pasos.add(String.format("Densidad tras insertar: %.2f", densDesp));
         pasos.add("H(" + clave + ") = " + clave + " mod " + n + " = " + (clave % n));
 
-        int columna = clave % n;
-
-        for (int i = 0; i < filas; i++) {
-            if (estructura[i][columna] != null && estructura[i][columna] == clave) {
-                pasos.add("La estructura no admite claves repetidas.");
-                return pasos;
-            }
-        }
-        if (colisiones.get(columna).contains(clave)) {
+        if (claves.contains(clave)) {
             pasos.add("La estructura no admite claves repetidas.");
             return pasos;
         }
 
-        if (estaLlena()) {
-            pasos.add("La densidad máxima ha sido alcanzada. No se pueden insertar más claves.");
+        if (densDesp > densMaxInsert) {
+            pasos.add("Se superará la densidad máxima.");
             return pasos;
         }
 
-        if (estructura[0][columna] == null) {
-            estructura[0][columna] = clave;
-            numInsertados++;
-            pasos.add("Insertado en fila 1, columna " + columna);
-            return pasos;
+        int col = clave % n;
+        if (tabla[0][col] == null) {
+            tabla[0][col] = clave;
+            claves.add(clave);
+            pasos.add("Insertado en fila 1, columna " + col);
+        } else if (tabla[1][col] == null) {
+            tabla[1][col] = clave;
+            claves.add(clave);
+            pasos.add("Insertado en fila 2, columna " + col);
+        } else {
+            colisiones.get(col).add(clave);
+            pasos.add("Colisión externa en columna " + col);
         }
 
-        if (estructura[1][columna] == null) {
-            estructura[1][columna] = clave;
-            numInsertados++;
-            pasos.add("Insertado en fila 2, columna " + columna);
-            return pasos;
-        }
-
-        colisiones.get(columna).add(clave);
-        pasos.add("Colisiones llenas. Clave colocada externamente en columna " + columna);
         return pasos;
     }
 
-    public boolean estaLlena() {
-        return obtenerDensidad() >= densidadMaxima;
+    public List<String> eliminar(int clave, boolean permitirReduccion) {
+    List<String> pasos = new ArrayList<>();
+
+    if (!claves.contains(clave)) {
+        pasos.add("La clave no existe en la estructura.");
+        return pasos;
     }
 
-    public double obtenerDensidad() {
-        return (double) numInsertados / (filas * columnas);
+    int col = clave % n;
+    pasos.add(String.format("Densidad antes: %.2f", obtenerDensidad()));
+
+    // 1. Eliminar la clave
+    if (tabla[0][col] != null && tabla[0][col] == clave) {
+        tabla[0][col] = null;
+    } else if (tabla[1][col] != null && tabla[1][col] == clave) {
+        tabla[1][col] = null;
+    }
+    claves.remove((Integer) clave);
+    pasos.add("Eliminada clave " + clave + " de columna " + col);
+
+    // 2. Subir clave de fila 2 a fila 1 si aplica
+    if (tabla[0][col] == null && tabla[1][col] != null) {
+        tabla[0][col] = tabla[1][col];
+        tabla[1][col] = null;
+        pasos.add("Clave " + tabla[0][col] + " subida de fila 2 a fila 1");
     }
 
-    public Integer[][] getEstructura() {
-        return estructura;
+    // 3. Reubicar colisión externa (si hay)
+    if (!colisiones.get(col).isEmpty()) {
+        Integer nueva = colisiones.get(col).remove(0);
+        if (tabla[0][col] == null) {
+            tabla[0][col] = nueva;
+            claves.add(nueva);
+            pasos.add("Clave colisionada " + nueva + " reubicada en fila 1");
+        } else if (tabla[1][col] == null) {
+            tabla[1][col] = nueva;
+            claves.add(nueva);
+            pasos.add("Clave colisionada " + nueva + " reubicada en fila 2");
+        } else {
+            // no debería ocurrir, pero lo dejamos por seguridad
+            colisiones.get(col).add(0, nueva);
+        }
+    }
+
+    double densDesp = obtenerDensidad();
+    pasos.add(String.format("Densidad tras eliminar: %.2f", densDesp));
+
+    if (densDesp < densMinDelete && permitirReduccion) {
+        pasos.add("Se caerá por debajo de la densidad mínima.");
+    }
+
+    return pasos;
+}
+
+
+    public void expandir(List<Integer> anteriores) {
+        n *= 2;
+        double tmpMax = densMaxInsert, tmpMin = densMinDelete;
+        reinicializar();
+        densMaxInsert = tmpMax;
+        densMinDelete = tmpMin;
+        for (int k : anteriores) insertar(k);
+    }
+
+    public void reducir(List<Integer> anteriores) {
+        n = Math.max(1, n / 2);
+        double tmpMax = densMaxInsert, tmpMin = densMinDelete;
+        reinicializar();
+        densMaxInsert = tmpMax;
+        densMinDelete = tmpMin;
+        for (int k : anteriores) insertar(k);
+    }
+
+    private int contarColisiones() {
+        int total = 0;
+        for (List<Integer> lista : colisiones) {
+            total += lista.size();
+        }
+        return total;
+    }
+
+    public Integer[][] getTabla() {
+        return tabla;
     }
 
     public List<List<Integer>> getColisiones() {
@@ -84,21 +155,25 @@ public class HashExpansionModel {
     }
 
     public int getColumnas() {
-        return columnas;
+        return n;
     }
 
-    public void expandirEstructura(List<Integer> claves) {
-        this.columnas *= 2;
-        this.n = columnas;
-        this.estructura = new Integer[filas][columnas];
-        this.colisiones = new ArrayList<>();
-        for (int i = 0; i < columnas; i++) {
-            colisiones.add(new ArrayList<>());
-        }
-        this.numInsertados = 0;
+    public double obtenerDensidad() {
+    int total = claves.size() + contarColisiones();
+    return (double) total / (filas * n);
+}
 
-        for (int clave : claves) {
-            insertarClave(clave);
-        }
+
+    public int obtenerClavesInsertadas() {
+        return claves.size();
+    }
+
+    public double getDensidadMaxInsert() {
+        return densMaxInsert;
+    }
+
+    public double getDensidadMinDelete() {
+        return densMinDelete;
     }
 }
+
