@@ -21,7 +21,7 @@ public class AlgorithmMenuView extends JFrame {
         setLayout(new BorderLayout(15, 15));
 
         // Set soft background color for the entire window
-        getContentPane().setBackground(new Color(240, 248, 255)); // Alice Blue
+        getContentPane().setBackground(new Color(240, 248, 255));
 
         // Top panel with title and subtitle
         JPanel titlePanel = new JPanel();
@@ -74,7 +74,7 @@ public class AlgorithmMenuView extends JFrame {
         bottomPanel.setBackground(new Color(220, 220, 220));
         bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0 Daniel Velandia 20191020140");
+        JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0 Grupo 1");
         lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblInfo.setForeground(new Color(100, 100, 100));
 

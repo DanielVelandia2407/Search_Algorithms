@@ -2,96 +2,117 @@ package controller;
 
 import view.MainView;
 import view.AlgorithmMenuView;
-import view.SequentialSearchView;
-import view.BinarySearchView;
-import view.HashAlgorithmView;
+import view.IndicesMenuView;
 import view.TreeView;
 
 public class MainController {
     private MainView mainView;
-    private AlgorithmMenuView algorithmMenuView;
+    private AlgorithmMenuController algorithmMenuController;
+    private IndicesMenuController indicesMenuController;
     private TreeView treeView;
 
-    public MainController(MainView view) {
-        this.mainView = view;
-        this.algorithmMenuView = new AlgorithmMenuView();
-        this.treeView = new TreeView();
-
-        // MainView -> AlgorithmMenuView
-        this.mainView.addInternalSearchListener(e -> {
-            mainView.setVisible(false);
-            algorithmMenuView.setVisible(true);
-        });
-
-        // AlgorithmMenuView -> MainView
-        this.algorithmMenuView.addBackListener(e -> {
-            algorithmMenuView.setVisible(false);
-            mainView.setVisible(true);
-        });
-
-        // AlgorithmMenuView -> TreeView
-        this.mainView.addTreeSearchListener(e -> {
-            mainView.setVisible(false);
-            treeView = new TreeView();
-            TreeController treeController = new TreeController(treeView);
-            treeController.setMainView(mainView);
-            treeView.showWindow();
-        });
-
-        // AlgorithmMenuView -> SequentialSearchView
-        this.algorithmMenuView.addSequentialSearchListener(e -> openSequentialSearch());
-
-        // AlgorithmMenuView -> BinarySearchView
-        this.algorithmMenuView.addBinarySearchListener(e -> openBinarySearch());
-
-        // AlgorithmMenuView -> HashAlgorithmView
-        this.algorithmMenuView.addHashSearchListener(e -> openHashAlgorithmView());
+    public MainController(MainView mainView) {
+        this.mainView = mainView;
+        initializeControllers();
+        initializeListeners();
     }
 
-    // Extracted method to open SequentialSearch view
-    private void openSequentialSearch() {
-        algorithmMenuView.setVisible(false);
-        SequentialSearchView sequentialSearchView = new SequentialSearchView();
-        SequentialSearchController controller = new SequentialSearchController(sequentialSearchView);
-        controller.setAlgorithmMenuView(algorithmMenuView);
+    /**
+     * Initialize sub-controllers
+     */
+    private void initializeControllers() {
+        // Create Algorithm Menu Controller
+        AlgorithmMenuView algorithmMenuView = new AlgorithmMenuView();
+        this.algorithmMenuController = new AlgorithmMenuController(algorithmMenuView);
+        this.algorithmMenuController.setMainView(mainView);
 
-        sequentialSearchView.showWindow();
+        // Create Indices Menu Controller
+        IndicesMenuView indicesMenuView = new IndicesMenuView();
+        this.indicesMenuController = new IndicesMenuController(indicesMenuView);
+        this.indicesMenuController.setMainView(mainView);
     }
 
-    // Extracted method to open BinarySearch view
-    private void openBinarySearch() {
-        algorithmMenuView.setVisible(false);
-        BinarySearchView binarySearchView = new BinarySearchView();
-        BinarySearchController controller = new BinarySearchController(binarySearchView);
-        controller.setAlgorithmMenuView(algorithmMenuView);
+    /**
+     * Initialize main view listeners
+     */
+    private void initializeListeners() {
+        // MainView -> AlgorithmMenuView (Internal Search)
+        this.mainView.addInternalSearchListener(e -> openAlgorithmMenu());
 
-        binarySearchView.showWindow();
+        // MainView -> TreeView
+        this.mainView.addTreeSearchListener(e -> openTreeView());
+
+        // MainView -> IndicesMenuView
+        this.mainView.addIndicesListener(e -> openIndicesMenu());
+
+        // TODO: Add listeners for other menu options when implemented
+        // this.mainView.addExternalSearchListener(e -> openExternalSearchMenu());
+        // this.mainView.addDynamicSearchListener(e -> openDynamicSearchMenu());
     }
 
-    // Method to show the Hash view
-    private void openHashAlgorithmView() {
-        algorithmMenuView.setVisible(false);
-        HashAlgorithmView hashAlgorithmView = new HashAlgorithmView();
-        HashAlgorithmController controller = new HashAlgorithmController(hashAlgorithmView);
-        controller.setAlgorithmMenuView(algorithmMenuView);
-
-        hashAlgorithmView.showWindow();
+    /**
+     * Open the algorithm menu (Internal Search)
+     */
+    private void openAlgorithmMenu() {
+        mainView.setVisible(false);
+        algorithmMenuController.getView().setVisible(true);
     }
 
-    // Method to show the Tree view
+    /**
+     * Open the indices menu
+     */
+    private void openIndicesMenu() {
+        mainView.setVisible(false);
+        indicesMenuController.getView().setVisible(true);
+    }
+
+    /**
+     * Open the tree view with its controller
+     */
     private void openTreeView() {
-        algorithmMenuView.setVisible(false);
+        mainView.setVisible(false);
         treeView = new TreeView();
+        TreeController treeController = new TreeController(treeView);
+        treeController.setMainView(mainView);
         treeView.showWindow();
     }
 
+    /**
+     * Show the main view
+     */
+    public void showView() {
+        mainView.setVisible(true);
+    }
 
-    // Main method for demonstration
+    /**
+     * Get the main view instance
+     */
+    public MainView getMainView() {
+        return mainView;
+    }
+
+    /**
+     * Get the algorithm menu controller
+     */
+    public AlgorithmMenuController getAlgorithmMenuController() {
+        return algorithmMenuController;
+    }
+
+    /**
+     * Get the indices menu controller
+     */
+    public IndicesMenuController getIndicesMenuController() {
+        return indicesMenuController;
+    }
+
+    /**
+     * Main method for demonstration
+     */
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> {
             MainView mainView = new MainView();
             MainController controller = new MainController(mainView);
-            mainView.setVisible(true);
+            controller.showView();
         });
     }
 }

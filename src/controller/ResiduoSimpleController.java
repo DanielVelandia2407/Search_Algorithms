@@ -1,7 +1,7 @@
 package controller;
 
 import model.ResiduoSimpleModel;
-import view.TrieResiduoSimpleView;  // Reutilizamos la misma vista genérica
+import view.TrieResiduoSimpleView;
 import view.TreeView;
 
 import javax.swing.*;

@@ -5,24 +5,24 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
-public class HashAlgorithmView extends JFrame {
+public class IndicesMenuView extends JFrame {
 
-    private JButton btnModSearch;
-    private JButton btnSquaredSearch;
-    private JButton btnTruncatedSearch;
-    private JButton btnFoldingSearch;
+    private JButton btnPrimaryIndex;
+    private JButton btnSecondaryIndex;
+    private JButton btnMultilevelPrimary;
+    private JButton btnMultilevelSecondary;
     private JButton btnBack;
 
-    public HashAlgorithmView() {
+    public IndicesMenuView() {
         // Basic window configuration
         setTitle("Algoritmos de Búsqueda");
-        setSize(600, 450); // Aumentado el tamaño para dar más espacio
+        setSize(500, 350);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
 
         // Set soft background color for the entire window
-        getContentPane().setBackground(new Color(240, 248, 255)); // Alice Blue
+        getContentPane().setBackground(new Color(240, 248, 255));
 
         // Top panel with title and subtitle
         JPanel titlePanel = new JPanel();
@@ -46,39 +46,31 @@ public class HashAlgorithmView extends JFrame {
 
         add(titlePanel, BorderLayout.NORTH);
 
-        // Center panel with buttons - Improved layout
-        JPanel centerPanel = new JPanel(new BorderLayout());
+        // Center panel with buttons
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new GridBagLayout());
         centerPanel.setBackground(new Color(240, 248, 255));
-        centerPanel.setBorder(new EmptyBorder(30, 50, 30, 50)); // Aumentado los márgenes
+        centerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Panel para los 4 botones principales en grid 2x2
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 25, 25)); // Aumentado el espacio entre botones
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(3, 2, 20, 20)); // Cambio a 3x2 para 5 botones
         buttonPanel.setBackground(new Color(240, 248, 255));
 
-        // Custom styled buttons
-        btnModSearch = createStyledButton("Función Modulo", new Color(41, 128, 185));
-        btnSquaredSearch = createStyledButton("Función Cuadrado", new Color(46, 134, 193));
-        btnTruncatedSearch = createStyledButton("Función Truncamiento", new Color(46, 134, 193));
-        btnFoldingSearch = createStyledButton("Función Plegamiento", new Color(46, 134, 193));
-
-        buttonPanel.add(btnModSearch);
-        buttonPanel.add(btnSquaredSearch);
-        buttonPanel.add(btnTruncatedSearch);
-        buttonPanel.add(btnFoldingSearch);
-
-        centerPanel.add(buttonPanel, BorderLayout.CENTER);
-
-        // Panel separado para el botón de volver
-        JPanel backButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        backButtonPanel.setBackground(new Color(240, 248, 255));
-        backButtonPanel.setBorder(new EmptyBorder(20, 0, 0, 0)); // Margen superior
-
+        // Custom styled buttons with index-themed colors
+        btnPrimaryIndex = createStyledButton("Índice Principal", new Color(52, 152, 219));
+        btnSecondaryIndex = createStyledButton("Índice Secundario", new Color(46, 134, 193));
+        btnMultilevelPrimary = createStyledButton("Multinivel Principal", new Color(155, 89, 182));
+        btnMultilevelSecondary = createStyledButton("Multinivel Secundario", new Color(142, 68, 173));
         btnBack = createStyledButton("Volver", new Color(231, 76, 60));
-        btnBack.setPreferredSize(new Dimension(150, 40)); // Botón de volver más pequeño
 
-        backButtonPanel.add(btnBack);
-        centerPanel.add(backButtonPanel, BorderLayout.SOUTH);
+        buttonPanel.add(btnPrimaryIndex);
+        buttonPanel.add(btnSecondaryIndex);
+        buttonPanel.add(btnMultilevelPrimary);
+        buttonPanel.add(btnMultilevelSecondary);
+        buttonPanel.add(btnBack);
+        buttonPanel.add(new JLabel()); // Espacio vacío para completar el grid
 
+        centerPanel.add(buttonPanel);
         add(centerPanel, BorderLayout.CENTER);
 
         // Bottom panel with information
@@ -86,12 +78,16 @@ public class HashAlgorithmView extends JFrame {
         bottomPanel.setBackground(new Color(220, 220, 220));
         bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0 Grupo 1");
+        JLabel lblInfo = new JLabel("© 2025 - Index Management System v1.0 Group 1");
         lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblInfo.setForeground(new Color(100, 100, 100));
 
         bottomPanel.add(lblInfo);
         add(bottomPanel, BorderLayout.SOUTH);
+
+        // Back button action
+        btnBack.addActionListener(e -> {
+        });
     }
 
     // Method to create a styled button
@@ -105,27 +101,25 @@ public class HashAlgorithmView extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(200, 50));
 
-        // Añadir un poco de margen interior a los botones
-        button.setMargin(new Insets(10, 15, 10, 15));
-
+        // Optional hover effect would require additional listeners
         return button;
     }
 
     // Methods to assign external actions to buttons
-    public void addModSearchListener(ActionListener listener) {
-        btnModSearch.addActionListener(listener);
+    public void addPrimaryIndexListener(ActionListener listener) {
+        btnPrimaryIndex.addActionListener(listener);
     }
 
-    public void addSquaredSearchListener(ActionListener listener) {
-        btnSquaredSearch.addActionListener(listener);
+    public void addSecondaryIndexListener(ActionListener listener) {
+        btnSecondaryIndex.addActionListener(listener);
     }
 
-    public void addTruncatedSearchListener(ActionListener listener) {
-        btnTruncatedSearch.addActionListener(listener);
+    public void addMultilevelPrimaryListener(ActionListener listener) {
+        btnMultilevelPrimary.addActionListener(listener);
     }
 
-    public void addFoldingSearchListener(ActionListener listener) {
-        btnFoldingSearch.addActionListener(listener);
+    public void addMultilevelSecondaryListener(ActionListener listener) {
+        btnMultilevelSecondary.addActionListener(listener);
     }
 
     public void addBackListener(ActionListener listener) {

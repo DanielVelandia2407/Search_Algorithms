@@ -138,6 +138,13 @@ public class TrieResiduoSimpleView extends JFrame {
         }
     }
 
+    // Limpiar campos de entrada
+    public void clearInputFields() {
+        txtInsert.setText("");
+        txtSearch.setText("");
+        txtDelete.setText("");
+    }
+
     // Para la visualización gráfica
     public void setTreeVisualizer(TreeVisualizer tv) {
         this.treeVisualizer = tv;

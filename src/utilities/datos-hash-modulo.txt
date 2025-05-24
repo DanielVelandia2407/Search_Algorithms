@@ -1,1 +1,13 @@
-[-1, -1, -1, 563, -1, -1, -1, -1, -1, -1]
+[-1]
+[-1]
+[-1]
+[-1]
+[-1]
+[-1]
+[-1]
+[-1]
+[-1]
+[-1]
+# Formato: cada línea representa una fila de la tabla hash
+# [valor1, valor2, ...] para múltiples valores en la misma posición
+# [-1] para posiciones vacías

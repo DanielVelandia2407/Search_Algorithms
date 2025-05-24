@@ -8,7 +8,6 @@ import java.util.Map;
 
 public class DigitalTreeView extends JFrame {
 
-    // Interfaz para comunicar con el controlador para dibujar el árbol
     public interface TreeVisualizer {
         void paintTreeVisualization(Graphics2D g2d, int width, int height);
     }
@@ -25,32 +24,29 @@ public class DigitalTreeView extends JFrame {
     private final JTextArea txtWordList;
     private final TreeVisualizationPanel treeVisualizationPanel;
 
-    // Visualizador del árbol (será el controlador)
+
     private TreeVisualizer treeVisualizer;
 
-    // Datos del árbol para visualización
+
     private Map<String, Object> trieData;
 
     public DigitalTreeView() {
-        // Configuración básica de la ventana
         setTitle("Árbol Digital");
         setSize(1000, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Panel principal con BorderLayout
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBackground(new Color(240, 248, 255));
         mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         setContentPane(mainPanel);
 
-        // Panel superior con título
         JPanel titlePanel = new JPanel();
         titlePanel.setBackground(new Color(70, 130, 180)); // Azul acero
         titlePanel.setLayout(new BorderLayout());
         titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblTitle = new JLabel("Algoritmo de Árbol Digital (Trie)");
+        JLabel lblTitle = new JLabel("Algoritmo de Árbol Digital");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setHorizontalAlignment(SwingConstants.CENTER);
@@ -65,18 +61,15 @@ public class DigitalTreeView extends JFrame {
 
         mainPanel.add(titlePanel, BorderLayout.NORTH);
 
-        // Panel central dividido
         JSplitPane centerSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        centerSplitPane.setResizeWeight(0.7);  // 70% para visualización, 30% para lista
+        centerSplitPane.setResizeWeight(0.7);
 
-        // Panel de visualización del árbol
         treeVisualizationPanel = new TreeVisualizationPanel();
         JScrollPane treeScrollPane = new JScrollPane(treeVisualizationPanel);
         treeScrollPane.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(70, 130, 180), 1),
                 "Visualización del Árbol Digital"));
 
-        // Panel para lista de palabras
         txtWordList = new JTextArea();
         txtWordList.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtWordList.setEditable(false);
@@ -92,12 +85,10 @@ public class DigitalTreeView extends JFrame {
 
         mainPanel.add(centerSplitPane, BorderLayout.CENTER);
 
-        // Panel inferior con controles
         JPanel controlPanel = new JPanel(new GridLayout(4, 3, 10, 10));
         controlPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
         controlPanel.setBackground(new Color(240, 248, 255));
 
-        // Fila 1: Insertar palabra
         JLabel lblInsert = new JLabel("Insertar clave:");
         txtWordToInsert = new JTextField(15);
         btnInsertWord = createButton("Insertar", new Color(46, 204, 113));
@@ -106,7 +97,6 @@ public class DigitalTreeView extends JFrame {
         controlPanel.add(txtWordToInsert);
         controlPanel.add(btnInsertWord);
 
-        // Fila 2: Buscar palabra
         JLabel lblSearch = new JLabel("Buscar clave:");
         txtWordToSearch = new JTextField(15);
         btnSearchWord = createButton("Buscar", new Color(52, 152, 219));
@@ -115,7 +105,6 @@ public class DigitalTreeView extends JFrame {
         controlPanel.add(txtWordToSearch);
         controlPanel.add(btnSearchWord);
 
-        // Fila 3: Eliminar palabra
         JLabel lblDelete = new JLabel("Eliminar clave:");
         txtWordToDelete = new JTextField(15);
         btnDeleteWord = createButton("Eliminar", new Color(231, 76, 60));
@@ -124,7 +113,6 @@ public class DigitalTreeView extends JFrame {
         controlPanel.add(txtWordToDelete);
         controlPanel.add(btnDeleteWord);
 
-        // Fila 4: Botones adicionales
         btnClearTrie = createButton("Limpiar Árbol", new Color(155, 89, 182));
         lblResult = new JLabel("");
         lblResult.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -136,11 +124,9 @@ public class DigitalTreeView extends JFrame {
 
         mainPanel.add(controlPanel, BorderLayout.SOUTH);
 
-        // Inicializar datos del Trie vacíos
         this.trieData = null;
     }
 
-    // Clase para el panel de visualización del árbol
     private class TreeVisualizationPanel extends JPanel {
         public TreeVisualizationPanel() {
             setPreferredSize(new Dimension(700, 500));
@@ -165,7 +151,6 @@ public class DigitalTreeView extends JFrame {
         }
     }
 
-    // Crear botón con estilo
     private JButton createButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
         button.setBackground(backgroundColor);
@@ -176,7 +161,6 @@ public class DigitalTreeView extends JFrame {
         return button;
     }
 
-    // Asignar listeners a botones
     public void addInsertWordListener(ActionListener listener) {
         btnInsertWord.addActionListener(listener);
     }
@@ -197,7 +181,6 @@ public class DigitalTreeView extends JFrame {
         btnBack.addActionListener(listener);
     }
 
-    // Obtener texto de los campos
     public String getWordToInsert() {
         return txtWordToInsert.getText().trim().toLowerCase();
     }
@@ -210,13 +193,11 @@ public class DigitalTreeView extends JFrame {
         return txtWordToDelete.getText().trim().toLowerCase();
     }
 
-    // Mostrar mensaje de resultado
     public void setResultMessage(String message, boolean isSuccess) {
         lblResult.setText(message);
         lblResult.setForeground(isSuccess ? new Color(46, 125, 50) : new Color(198, 40, 40));
     }
 
-    // Actualizar lista de palabras
     public void updateWordList(String[] words) {
         StringBuilder sb = new StringBuilder();
         sb.append("Claves en el Trie:\n\n");
@@ -232,30 +213,25 @@ public class DigitalTreeView extends JFrame {
         txtWordList.setText(sb.toString());
     }
 
-    // Limpiar campos
     public void clearInputFields() {
         txtWordToInsert.setText("");
         txtWordToDelete.setText("");
         lblResult.setText("");
     }
 
-    // Establecer visualizador
     public void setTreeVisualizer(TreeVisualizer visualizer) {
         this.treeVisualizer = visualizer;
     }
 
-    // Actualizar visualización
     public void updateTrieVisualization(Map<String, Object> trieData) {
         this.trieData = trieData;
         treeVisualizationPanel.repaint();
     }
 
-    // Obtener datos del árbol
     public Map<String, Object> getTrieData() {
         return this.trieData;
     }
 
-    // Mostrar ventana
     public void showWindow() {
         setVisible(true);
     }

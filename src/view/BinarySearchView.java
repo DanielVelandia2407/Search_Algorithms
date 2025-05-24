@@ -3,29 +3,36 @@ package view;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
 public class BinarySearchView extends JFrame {
 
-    private final JButton btnSearch;
-    private final JButton btnGenerateArray;
-    private final JButton btnDeleteValue;
-    private final JButton btnInsertValue;
-    private final JButton btnSortArray;
-    private final JButton btnBack;
-    private final JTable dataTable;
-    private final DefaultTableModel tableModel;
-    private final JTextField txtValueToSearch;
-    private final JTextField txtArraySize;
-    private final JTextField txtInsertValue;
-    private final JTextField txtValueToDelete;
-    private final JLabel lblResult;
+    private JButton btnSearch;
+    private JButton btnGenerateArray;
+    private JButton btnDeleteValue;
+    private JButton btnInsertValue;
+    private JButton btnBack;
+    private JTable dataTable;
+    private DefaultTableModel tableModel;
+    private JTextField txtValueToSearch;
+    private JTextField txtArraySize;
+    private JTextField txtInsertValue;
+    private JTextField txtValueToDelete;
+    private JTextField txtDigitLimit;
+    private JCheckBox chkVisualizeProcess;
+    private JLabel lblResult;
+    private int currentSearchIndex = -1;
+    private int foundIndex = -1;
+    private int leftIndex = -1;
+    private int rightIndex = -1;
+    private int midIndex = -1;
 
     public BinarySearchView() {
         // Basic window configuration
         setTitle("Búsqueda Binaria");
-        setSize(600, 950);
+        setSize(600, 1000);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
@@ -65,7 +72,7 @@ public class BinarySearchView extends JFrame {
         tablePanel.setBackground(new Color(240, 248, 255));
 
         // Create table model with two columns: position and value
-        tableModel = new DefaultTableModel(new Object[]{"Posición", "Valor"}, 0) {
+        tableModel = new DefaultTableModel(new Object[]{"Posición", "Clave"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Make table non-editable
@@ -79,23 +86,60 @@ public class BinarySearchView extends JFrame {
         dataTable.getTableHeader().setBackground(new Color(41, 128, 185));
         dataTable.getTableHeader().setForeground(Color.WHITE);
 
+        // Custom cell renderer for highlighting
+        dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value,
+                        isSelected, hasFocus, row, column);
+
+                if (row == foundIndex && foundIndex != -1) {
+                    c.setBackground(new Color(150, 255, 150));
+                    c.setForeground(Color.BLACK);
+                } else if (row == midIndex && midIndex != -1) {
+                    c.setBackground(new Color(255, 255, 150));
+                    c.setForeground(Color.BLACK);
+                } else if ((row >= leftIndex && row <= rightIndex) && leftIndex != -1 && rightIndex != -1) {
+                    c.setBackground(new Color(173, 216, 230));
+                    c.setForeground(Color.BLACK);
+                } else {
+                    c.setBackground(Color.WHITE);
+                    c.setForeground(Color.BLACK);
+                }
+
+                return c;
+            }
+        });
+
         JScrollPane scrollPane = new JScrollPane(dataTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(41, 128, 185), 1));
 
         tablePanel.add(scrollPane, BorderLayout.CENTER);
         centerPanel.add(tablePanel, BorderLayout.CENTER);
 
-        // Control panel (at the bottom) - Reorganizado con mejor espaciado
         JPanel controlPanel = new JPanel(new BorderLayout(10, 10));
         controlPanel.setBackground(new Color(240, 248, 255));
         controlPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        // Panel contenedor que organiza verticalmente los subpaneles
         JPanel verticalControlPanel = new JPanel();
         verticalControlPanel.setLayout(new BoxLayout(verticalControlPanel, BoxLayout.Y_AXIS));
         verticalControlPanel.setBackground(new Color(240, 248, 255));
 
-        // Panel para generar arreglo
+        JPanel digitLimitPanel = createControlPanel();
+        JLabel lblDigitLimit = new JLabel("Límite de dígitos:");
+        lblDigitLimit.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        txtDigitLimit = new JTextField(10);
+        txtDigitLimit.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtDigitLimit.setText("2"); // Valor por defecto
+
+        digitLimitPanel.add(lblDigitLimit);
+        digitLimitPanel.add(txtDigitLimit);
+
+        verticalControlPanel.add(digitLimitPanel);
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
         JPanel generatePanel = createControlPanel();
         JLabel lblArraySize = new JLabel("Tamaño del arreglo:");
         lblArraySize.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -113,9 +157,9 @@ public class BinarySearchView extends JFrame {
         verticalControlPanel.add(generatePanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Panel para insertar valores
+        // Panel to insert value
         JPanel insertPanel = createControlPanel();
-        JLabel lblInsert = new JLabel("Inserte un clave:");
+        JLabel lblInsert = new JLabel("Insertar una clave:");
         lblInsert.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtInsertValue = new JTextField(10);
@@ -131,9 +175,9 @@ public class BinarySearchView extends JFrame {
         verticalControlPanel.add(insertPanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Panel para buscar valor
+        // Panel to search value
         JPanel searchPanel = createControlPanel();
-        JLabel lblSearch = new JLabel("Valor a buscar:");
+        JLabel lblSearch = new JLabel("Clave a buscar:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtValueToSearch = new JTextField(10);
@@ -149,9 +193,22 @@ public class BinarySearchView extends JFrame {
         verticalControlPanel.add(searchPanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Panel para eliminar valores
+        // Panel for visualization checkbox
+        JPanel visualizationPanel = createControlPanel();
+        chkVisualizeProcess = new JCheckBox("Visualizar proceso de búsqueda");
+        chkVisualizeProcess.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        chkVisualizeProcess.setBackground(new Color(240, 248, 255));
+        chkVisualizeProcess.setSelected(true); // Por defecto activado
+        chkVisualizeProcess.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        visualizationPanel.add(chkVisualizeProcess);
+
+        verticalControlPanel.add(visualizationPanel);
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        // Panel to delete value
         JPanel deletePanel = createControlPanel();
-        JLabel lblDelete = new JLabel("Eliminar un valor:");
+        JLabel lblDelete = new JLabel("Eliminar una clave:");
         lblDelete.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtValueToDelete = new JTextField(10);
@@ -165,17 +222,6 @@ public class BinarySearchView extends JFrame {
         deletePanel.add(btnDeleteValue);
 
         verticalControlPanel.add(deletePanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        // Panel para ordenar arreglo
-        JPanel sortPanel = createControlPanel();
-
-        btnSortArray = createStyledButton("Ordenar", new Color(46, 204, 113));
-
-        sortPanel.add(Box.createHorizontalStrut(10));
-        sortPanel.add(btnSortArray);
-
-        verticalControlPanel.add(sortPanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Result label
@@ -233,7 +279,7 @@ public class BinarySearchView extends JFrame {
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(150, 35));  // Estandarizar tamaño
+        button.setPreferredSize(new Dimension(150, 35));
 
         return button;
     }
@@ -253,10 +299,6 @@ public class BinarySearchView extends JFrame {
 
     public void addDeleteValueListener(ActionListener listener) {
         btnDeleteValue.addActionListener(listener);
-    }
-
-    public void addSortArrayListener(ActionListener listener) {
-        btnSortArray.addActionListener(listener);
     }
 
     public void addBackListener(ActionListener listener) {
@@ -283,6 +325,11 @@ public class BinarySearchView extends JFrame {
         return txtValueToDelete.getText().trim();
     }
 
+    // Method to get digit limit
+    public String getDigitLimit() {
+        return txtDigitLimit.getText().trim();
+    }
+
     // Method to display search result
     public void setResultMessage(String message, boolean isSuccess) {
         lblResult.setText(message);
@@ -297,12 +344,53 @@ public class BinarySearchView extends JFrame {
         }
     }
 
-    // Method to highlight a specific row in the table
+    // Method to highlight a specific row in the table (para compatibilidad)
     public void highlightRow(int rowIndex) {
         if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
             dataTable.setRowSelectionInterval(rowIndex, rowIndex);
             dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
         }
+    }
+
+    // Method to highlight binary search progress with left, right, and mid indices
+    public void highlightBinarySearchProgress(int left, int right, int mid) {
+        this.leftIndex = left;
+        this.rightIndex = right;
+        this.midIndex = mid;
+        this.foundIndex = -1;
+        dataTable.repaint();
+
+        // Auto-scroll to the middle position
+        if (mid >= 0 && mid < dataTable.getRowCount()) {
+            dataTable.scrollRectToVisible(dataTable.getCellRect(mid, 0, true));
+        }
+    }
+
+    // Method to highlight found item
+    public void highlightFoundItem(int rowIndex) {
+        this.leftIndex = -1;
+        this.rightIndex = -1;
+        this.midIndex = -1;
+        this.foundIndex = rowIndex;
+        dataTable.repaint();
+
+        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
+            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
+        }
+    }
+
+    // Method to clear highlights
+    public void clearHighlights() {
+        this.leftIndex = -1;
+        this.rightIndex = -1;
+        this.midIndex = -1;
+        this.foundIndex = -1;
+        dataTable.repaint();
+    }
+
+    // Method to check if visualization is enabled
+    public boolean isVisualizationEnabled() {
+        return chkVisualizeProcess.isSelected();
     }
 
     // Method to show the window

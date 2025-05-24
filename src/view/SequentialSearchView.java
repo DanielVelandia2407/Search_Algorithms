@@ -3,6 +3,7 @@ package view;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
@@ -20,12 +21,16 @@ public class SequentialSearchView extends JFrame {
     private JTextField txtArraySize;
     private JTextField txtInsertValue;
     private JTextField txtValueToDelete;
+    private JTextField txtDigitLimit;
+    private JCheckBox chkVisualizeProcess;
     private JLabel lblResult;
+    private int currentSearchIndex = -1;
+    private int foundIndex = -1;
 
     public SequentialSearchView() {
         // Basic window configuration
         setTitle("Búsqueda Secuencial");
-        setSize(600, 950);  // Incrementado altura para acomodar el nuevo botón
+        setSize(600, 1000);  // Incrementado altura para acomodar el nuevo campo
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
@@ -65,7 +70,7 @@ public class SequentialSearchView extends JFrame {
         tablePanel.setBackground(new Color(240, 248, 255));
 
         // Create table model with two columns: position and value
-        tableModel = new DefaultTableModel(new Object[]{"Posición", "Valor"}, 0) {
+        tableModel = new DefaultTableModel(new Object[]{"Posición", "Clave"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Make table non-editable
@@ -78,6 +83,29 @@ public class SequentialSearchView extends JFrame {
         dataTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
         dataTable.getTableHeader().setBackground(new Color(41, 128, 185));
         dataTable.getTableHeader().setForeground(Color.WHITE);
+
+        // Custom cell renderer for highlighting
+        dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value,
+                        isSelected, hasFocus, row, column);
+
+                if (row == currentSearchIndex && currentSearchIndex != -1) {
+                    c.setBackground(new Color(255, 255, 150)); // Amarillo claro para búsqueda actual
+                    c.setForeground(Color.BLACK);
+                } else if (row == foundIndex && foundIndex != -1) {
+                    c.setBackground(new Color(150, 255, 150)); // Verde claro para encontrado
+                    c.setForeground(Color.BLACK);
+                } else {
+                    c.setBackground(Color.WHITE);
+                    c.setForeground(Color.BLACK);
+                }
+
+                return c;
+            }
+        });
 
         JScrollPane scrollPane = new JScrollPane(dataTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(41, 128, 185), 1));
@@ -95,6 +123,21 @@ public class SequentialSearchView extends JFrame {
         verticalControlPanel.setLayout(new BoxLayout(verticalControlPanel, BoxLayout.Y_AXIS));
         verticalControlPanel.setBackground(new Color(240, 248, 255));
 
+        // Panel para límite de dígitos
+        JPanel digitLimitPanel = createControlPanel();
+        JLabel lblDigitLimit = new JLabel("Límite de dígitos:");
+        lblDigitLimit.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        txtDigitLimit = new JTextField(10);
+        txtDigitLimit.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtDigitLimit.setText("2"); // Valor por defecto
+
+        digitLimitPanel.add(lblDigitLimit);
+        digitLimitPanel.add(txtDigitLimit);
+
+        verticalControlPanel.add(digitLimitPanel);
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
         // Panel para generar arreglo
         JPanel generatePanel = createControlPanel();
         JLabel lblArraySize = new JLabel("Tamaño del arreglo:");
@@ -107,15 +150,15 @@ public class SequentialSearchView extends JFrame {
 
         generatePanel.add(lblArraySize);
         generatePanel.add(txtArraySize);
-        generatePanel.add(Box.createHorizontalStrut(10));  // Espacio horizontal
+        generatePanel.add(Box.createHorizontalStrut(10));
         generatePanel.add(btnGenerateArray);
 
         verticalControlPanel.add(generatePanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));  // Espacio vertical
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Panel para insertar valores
         JPanel insertPanel = createControlPanel();
-        JLabel lblInsert = new JLabel("Inserte un clave:");
+        JLabel lblInsert = new JLabel("Insertar una clave:");
         lblInsert.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtInsertValue = new JTextField(10);
@@ -125,15 +168,15 @@ public class SequentialSearchView extends JFrame {
 
         insertPanel.add(lblInsert);
         insertPanel.add(txtInsertValue);
-        insertPanel.add(Box.createHorizontalStrut(10));  // Espacio horizontal
+        insertPanel.add(Box.createHorizontalStrut(10));
         insertPanel.add(btnInsertValue);
 
         verticalControlPanel.add(insertPanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));  // Espacio vertical
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Panel para buscar valor
         JPanel searchPanel = createControlPanel();
-        JLabel lblSearch = new JLabel("Valor a buscar:");
+        JLabel lblSearch = new JLabel("Clave a buscar:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtValueToSearch = new JTextField(10);
@@ -143,15 +186,28 @@ public class SequentialSearchView extends JFrame {
 
         searchPanel.add(lblSearch);
         searchPanel.add(txtValueToSearch);
-        searchPanel.add(Box.createHorizontalStrut(10));  // Espacio horizontal
+        searchPanel.add(Box.createHorizontalStrut(10));
         searchPanel.add(btnSearch);
 
         verticalControlPanel.add(searchPanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));  // Espacio vertical
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        // Panel para el checkbox de visualización
+        JPanel visualizationPanel = createControlPanel();
+        chkVisualizeProcess = new JCheckBox("Visualizar proceso de búsqueda");
+        chkVisualizeProcess.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        chkVisualizeProcess.setBackground(new Color(240, 248, 255));
+        chkVisualizeProcess.setSelected(true); // Por defecto activado
+        chkVisualizeProcess.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        visualizationPanel.add(chkVisualizeProcess);
+
+        verticalControlPanel.add(visualizationPanel);
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Panel para eliminar valores
         JPanel deletePanel = createControlPanel();
-        JLabel lblDelete = new JLabel("Eliminar un valor:");
+        JLabel lblDelete = new JLabel("Eliminar una clave:");
         lblDelete.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtValueToDelete = new JTextField(10);
@@ -161,11 +217,11 @@ public class SequentialSearchView extends JFrame {
 
         deletePanel.add(lblDelete);
         deletePanel.add(txtValueToDelete);
-        deletePanel.add(Box.createHorizontalStrut(10));  // Espacio horizontal
+        deletePanel.add(Box.createHorizontalStrut(10));
         deletePanel.add(btnDeleteValue);
 
         verticalControlPanel.add(deletePanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));  // Espacio vertical
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Result label
         lblResult = new JLabel("");
@@ -178,7 +234,7 @@ public class SequentialSearchView extends JFrame {
         resultPanel.add(lblResult);
 
         verticalControlPanel.add(resultPanel);
-        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));  // Espacio vertical
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Button panel for back button
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -222,7 +278,7 @@ public class SequentialSearchView extends JFrame {
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(150, 35));  // Estandarizar tamaño
+        button.setPreferredSize(new Dimension(150, 35));
 
         return button;
     }
@@ -272,6 +328,11 @@ public class SequentialSearchView extends JFrame {
         return txtValueToDelete.getText().trim();
     }
 
+    // Method to get digit limit
+    public String getDigitLimit() {
+        return txtDigitLimit.getText().trim();
+    }
+
     // Method to display search result
     public void setResultMessage(String message, boolean isSuccess) {
         lblResult.setText(message);
@@ -292,6 +353,40 @@ public class SequentialSearchView extends JFrame {
             dataTable.setRowSelectionInterval(rowIndex, rowIndex);
             dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
         }
+    }
+
+    // Method to highlight search progress
+    public void highlightSearchProgress(int rowIndex) {
+        currentSearchIndex = rowIndex;
+        foundIndex = -1;
+        dataTable.repaint();
+
+        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
+            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
+        }
+    }
+
+    // Method to highlight found item
+    public void highlightFoundItem(int rowIndex) {
+        currentSearchIndex = -1;
+        foundIndex = rowIndex;
+        dataTable.repaint();
+
+        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
+            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
+        }
+    }
+
+    // Method to clear highlights
+    public void clearHighlights() {
+        currentSearchIndex = -1;
+        foundIndex = -1;
+        dataTable.repaint();
+    }
+
+    // Method to check if visualization is enabled
+    public boolean isVisualizationEnabled() {
+        return chkVisualizeProcess.isSelected();
     }
 
     // Method to show the window
