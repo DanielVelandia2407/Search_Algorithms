@@ -1,2 +1,0 @@
-expansiontotal.model.HashExpansionModel
-ModeloHash

@@ -1,2 +1,0 @@
-ModeloHash
-expansiontotal.controller.HashExpansionController

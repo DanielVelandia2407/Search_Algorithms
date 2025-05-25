@@ -10,6 +10,7 @@ public class MainController {
     private AlgorithmMenuController algorithmMenuController;
     private IndicesMenuController indicesMenuController;
     private TreeView treeView;
+    private HashExpansionController hashExpansionController; // Nuevo controlador
 
     public MainController(MainView mainView) {
         this.mainView = mainView;
@@ -30,6 +31,9 @@ public class MainController {
         IndicesMenuView indicesMenuView = new IndicesMenuView();
         this.indicesMenuController = new IndicesMenuController(indicesMenuView);
         this.indicesMenuController.setMainView(mainView);
+
+        // Initialize Hash Expansion Controller (pero no lo creamos aquí, se crea cuando se necesite)
+        this.hashExpansionController = null;
     }
 
     /**
@@ -45,9 +49,11 @@ public class MainController {
         // MainView -> IndicesMenuView
         this.mainView.addIndicesListener(e -> openIndicesMenu());
 
+        // MainView -> HashExpansionView (Dynamic Search) - NUEVA FUNCIONALIDAD
+        this.mainView.addDynamicSearchListener(e -> openHashExpansionView());
+
         // TODO: Add listeners for other menu options when implemented
         // this.mainView.addExternalSearchListener(e -> openExternalSearchMenu());
-        // this.mainView.addDynamicSearchListener(e -> openDynamicSearchMenu());
     }
 
     /**
@@ -78,6 +84,22 @@ public class MainController {
     }
 
     /**
+     * Open the hash expansion view (Dynamic Search) - NUEVO MÉTODO
+     */
+    private void openHashExpansionView() {
+        mainView.setVisible(false);
+
+        // Crear una nueva instancia cada vez para permitir diferentes configuraciones
+        hashExpansionController = new HashExpansionController();
+        hashExpansionController.setMainView(mainView);
+
+        // Mostrar la vista si la inicialización fue exitosa
+        if (hashExpansionController.getView() != null) {
+            hashExpansionController.showView();
+        }
+    }
+
+    /**
      * Show the main view
      */
     public void showView() {
@@ -103,6 +125,13 @@ public class MainController {
      */
     public IndicesMenuController getIndicesMenuController() {
         return indicesMenuController;
+    }
+
+    /**
+     * Get the hash expansion controller
+     */
+    public HashExpansionController getHashExpansionController() {
+        return hashExpansionController;
     }
 
     /**
