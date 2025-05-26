@@ -3,6 +3,7 @@ package view;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
@@ -19,12 +20,18 @@ public class SquaredSearchView extends JFrame {
     private final JTextField txtArraySize;
     private final JTextField txtInsertValue;
     private final JTextField txtValueToDelete;
+    private final JTextField txtDigitLimit; // NUEVO: Campo para límite de dígitos
+    private final JCheckBox chkVisualizeProcess; // NUEVO: Checkbox para visualización
     private final JLabel lblResult;
+
+    // NUEVAS: Variables para el highlighting
+    private int currentSearchIndex = -1;
+    private int foundIndex = -1;
 
     public SquaredSearchView() {
         // Basic window configuration
         setTitle("Función Cuadrado");
-        setSize(600, 950);
+        setSize(600, 1050); // MODIFICADO: Aumentado altura para nuevos componentes
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
@@ -78,6 +85,31 @@ public class SquaredSearchView extends JFrame {
         dataTable.getTableHeader().setBackground(new Color(41, 128, 185));
         dataTable.getTableHeader().setForeground(Color.WHITE);
 
+        // NUEVO: Renderer personalizado para highlighting
+        dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value,
+                        isSelected, hasFocus, row, column);
+
+                if (row == foundIndex && foundIndex != -1) {
+                    // Verde claro para encontrado (prioridad más alta)
+                    c.setBackground(new Color(150, 255, 150));
+                    c.setForeground(Color.BLACK);
+                } else if (row == currentSearchIndex && currentSearchIndex != -1) {
+                    // Amarillo claro para posición actual siendo evaluada durante la búsqueda
+                    c.setBackground(new Color(255, 255, 150));
+                    c.setForeground(Color.BLACK);
+                } else {
+                    c.setBackground(Color.WHITE);
+                    c.setForeground(Color.BLACK);
+                }
+
+                return c;
+            }
+        });
+
         JScrollPane scrollPane = new JScrollPane(dataTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(41, 128, 185), 1));
 
@@ -93,6 +125,21 @@ public class SquaredSearchView extends JFrame {
         JPanel verticalControlPanel = new JPanel();
         verticalControlPanel.setLayout(new BoxLayout(verticalControlPanel, BoxLayout.Y_AXIS));
         verticalControlPanel.setBackground(new Color(240, 248, 255));
+
+        // NUEVO: Panel para límite de dígitos
+        JPanel digitLimitPanel = createControlPanel();
+        JLabel lblDigitLimit = new JLabel("Límite de dígitos:");
+        lblDigitLimit.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        txtDigitLimit = new JTextField(10);
+        txtDigitLimit.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtDigitLimit.setText("2"); // Valor por defecto
+
+        digitLimitPanel.add(lblDigitLimit);
+        digitLimitPanel.add(txtDigitLimit);
+
+        verticalControlPanel.add(digitLimitPanel);
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Panel para generar arreglo
         JPanel generatePanel = createControlPanel();
@@ -146,6 +193,19 @@ public class SquaredSearchView extends JFrame {
         searchPanel.add(btnSearch);
 
         verticalControlPanel.add(searchPanel);
+        verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        // NUEVO: Panel para el checkbox de visualización
+        JPanel visualizationPanel = createControlPanel();
+        chkVisualizeProcess = new JCheckBox("Visualizar proceso de búsqueda");
+        chkVisualizeProcess.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        chkVisualizeProcess.setBackground(new Color(240, 248, 255));
+        chkVisualizeProcess.setSelected(true); // Por defecto activado
+        chkVisualizeProcess.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        visualizationPanel.add(chkVisualizeProcess);
+
+        verticalControlPanel.add(visualizationPanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Panel para eliminar valores
@@ -267,6 +327,11 @@ public class SquaredSearchView extends JFrame {
         return txtValueToDelete.getText().trim();
     }
 
+    // NUEVO: Method to get digit limit
+    public String getDigitLimit() {
+        return txtDigitLimit.getText().trim();
+    }
+
     // Method to display search result
     public void setResultMessage(String message, boolean isSuccess) {
         lblResult.setText(message);
@@ -281,7 +346,7 @@ public class SquaredSearchView extends JFrame {
         }
     }
 
-    // Method to highlight a specific row in the table
+    // Method to highlight a specific row in the table (compatibilidad con código anterior)
     public void highlightRow(int rowIndex) {
         if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
             dataTable.setRowSelectionInterval(rowIndex, rowIndex);
@@ -289,9 +354,42 @@ public class SquaredSearchView extends JFrame {
         }
     }
 
+    // NUEVO: Method to highlight search progress (amarillo)
+    public void highlightSearchProgress(int rowIndex) {
+        currentSearchIndex = rowIndex;
+        foundIndex = -1;
+        dataTable.repaint();
+
+        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
+            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
+        }
+    }
+
+    // NUEVO: Method to highlight found item (verde)
+    public void highlightFoundItem(int rowIndex) {
+        currentSearchIndex = -1;
+        foundIndex = rowIndex;
+        dataTable.repaint();
+
+        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
+            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
+        }
+    }
+
+    // NUEVO: Method to clear highlights
+    public void clearHighlights() {
+        currentSearchIndex = -1;
+        foundIndex = -1;
+        dataTable.repaint();
+    }
+
+    // NUEVO: Method to check if visualization is enabled
+    public boolean isVisualizationEnabled() {
+        return chkVisualizeProcess.isSelected();
+    }
+
     // Method to show the window
     public void showWindow() {
         setVisible(true);
     }
 }
-

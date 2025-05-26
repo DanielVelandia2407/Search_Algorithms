@@ -3,14 +3,15 @@ package controller;
 import view.MainView;
 import view.AlgorithmMenuView;
 import view.IndicesMenuView;
+import view.SearchMenuView;
 import view.TreeView;
 
 public class MainController {
     private MainView mainView;
     private AlgorithmMenuController algorithmMenuController;
     private IndicesMenuController indicesMenuController;
+    private SearchMenuController searchMenuController; // NUEVO
     private TreeView treeView;
-    private HashExpansionController hashExpansionController; // Nuevo controlador
 
     public MainController(MainView mainView) {
         this.mainView = mainView;
@@ -32,8 +33,10 @@ public class MainController {
         this.indicesMenuController = new IndicesMenuController(indicesMenuView);
         this.indicesMenuController.setMainView(mainView);
 
-        // Initialize Hash Expansion Controller (pero no lo creamos aquí, se crea cuando se necesite)
-        this.hashExpansionController = null;
+        // Create Search Menu Controller (NUEVO)
+        SearchMenuView searchMenuView = new SearchMenuView();
+        this.searchMenuController = new SearchMenuController(searchMenuView);
+        this.searchMenuController.setMainView(mainView);
     }
 
     /**
@@ -49,8 +52,8 @@ public class MainController {
         // MainView -> IndicesMenuView
         this.mainView.addIndicesListener(e -> openIndicesMenu());
 
-        // MainView -> HashExpansionView (Dynamic Search) - NUEVA FUNCIONALIDAD
-        this.mainView.addDynamicSearchListener(e -> openHashExpansionView());
+        // MainView -> SearchMenuView (Dynamic Search) - MODIFICADO
+        this.mainView.addDynamicSearchListener(e -> openSearchMenu());
 
         // TODO: Add listeners for other menu options when implemented
         // this.mainView.addExternalSearchListener(e -> openExternalSearchMenu());
@@ -73,6 +76,14 @@ public class MainController {
     }
 
     /**
+     * Open the search menu (NEW METHOD)
+     */
+    private void openSearchMenu() {
+        mainView.setVisible(false);
+        searchMenuController.showView();
+    }
+
+    /**
      * Open the tree view with its controller
      */
     private void openTreeView() {
@@ -81,22 +92,6 @@ public class MainController {
         TreeController treeController = new TreeController(treeView);
         treeController.setMainView(mainView);
         treeView.showWindow();
-    }
-
-    /**
-     * Open the hash expansion view (Dynamic Search) - NUEVO MÉTODO
-     */
-    private void openHashExpansionView() {
-        mainView.setVisible(false);
-
-        // Crear una nueva instancia cada vez para permitir diferentes configuraciones
-        hashExpansionController = new HashExpansionController();
-        hashExpansionController.setMainView(mainView);
-
-        // Mostrar la vista si la inicialización fue exitosa
-        if (hashExpansionController.getView() != null) {
-            hashExpansionController.showView();
-        }
     }
 
     /**
@@ -128,10 +123,10 @@ public class MainController {
     }
 
     /**
-     * Get the hash expansion controller
+     * Get the search menu controller (NEW GETTER)
      */
-    public HashExpansionController getHashExpansionController() {
-        return hashExpansionController;
+    public SearchMenuController getSearchMenuController() {
+        return searchMenuController;
     }
 
     /**

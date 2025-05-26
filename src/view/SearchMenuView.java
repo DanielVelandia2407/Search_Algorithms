@@ -5,18 +5,16 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
-public class IndicesMenuView extends JFrame {
+public class SearchMenuView extends JFrame {
 
-    private JButton btnPrimaryIndex;
-    private JButton btnSecondaryIndex;
-    private JButton btnMultilevelPrimary;
-    private JButton btnMultilevelSecondary;
+    private JButton btnPartialSearch;
+    private JButton btnTotalSearch;
     private JButton btnBack;
 
-    public IndicesMenuView() {
+    public SearchMenuView() {
         // Basic window configuration
-        setTitle("Algoritmos de Búsqueda - Índices");
-        setSize(500, 400);
+        setTitle("Tipos de Búsqueda");
+        setSize(500, 350);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
@@ -30,12 +28,12 @@ public class IndicesMenuView extends JFrame {
         titlePanel.setBackground(new Color(70, 130, 180)); // Steel Blue
         titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblTitle = new JLabel("Algoritmos de Búsqueda - Índices");
+        JLabel lblTitle = new JLabel("Tipos de Búsqueda");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lblSubtitle = new JLabel("Seleccione una opción para continuar");
+        JLabel lblSubtitle = new JLabel("Seleccione el tipo de búsqueda a realizar");
         lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         lblSubtitle.setForeground(new Color(240, 248, 255));
         lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -53,22 +51,22 @@ public class IndicesMenuView extends JFrame {
         centerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(3, 2, 20, 20)); // 3 filas, 2 columnas para 5 botones
+        buttonPanel.setLayout(new GridLayout(2, 2, 20, 20));
         buttonPanel.setBackground(new Color(240, 248, 255));
 
-        // Custom styled buttons con colores consistentes
-        btnPrimaryIndex = createStyledButton("Índice Principal", new Color(41, 128, 185));
-        btnSecondaryIndex = createStyledButton("Índice Secundario", new Color(46, 134, 193));
-        btnMultilevelPrimary = createStyledButton("Multinivel Principal", new Color(52, 152, 219));
-        btnMultilevelSecondary = createStyledButton("Multinivel Dinámico", new Color(155, 89, 182));
+        // Custom styled buttons
+        btnPartialSearch = createStyledButton("Búsqueda Parcial", new Color(41, 128, 185));
+        btnTotalSearch = createStyledButton("Búsqueda Total", new Color(46, 134, 193));
         btnBack = createStyledButton("Volver", new Color(231, 76, 60));
 
-        buttonPanel.add(btnPrimaryIndex);
-        buttonPanel.add(btnSecondaryIndex);
-        buttonPanel.add(btnMultilevelPrimary);
-        buttonPanel.add(btnMultilevelSecondary);
+        // Add empty panel to maintain grid layout balance
+        JPanel emptyPanel = new JPanel();
+        emptyPanel.setBackground(new Color(240, 248, 255));
+
+        buttonPanel.add(btnPartialSearch);
+        buttonPanel.add(btnTotalSearch);
+        buttonPanel.add(emptyPanel);
         buttonPanel.add(btnBack);
-        buttonPanel.add(new JLabel());
 
         centerPanel.add(buttonPanel);
         add(centerPanel, BorderLayout.CENTER);
@@ -78,15 +76,16 @@ public class IndicesMenuView extends JFrame {
         bottomPanel.setBackground(new Color(220, 220, 220));
         bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel lblInfo = new JLabel("© 2025 - Sistema de Índices v2.0 Grupo 1");
+        JLabel lblInfo = new JLabel("© 2025 - Search Types v1.0 Grupo 1");
         lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblInfo.setForeground(new Color(100, 100, 100));
 
         bottomPanel.add(lblInfo);
         add(bottomPanel, BorderLayout.SOUTH);
 
-        // Back button action placeholder
+        // Back button action (empty for now)
         btnBack.addActionListener(e -> {
+            // Add back functionality here
         });
     }
 
@@ -101,43 +100,20 @@ public class IndicesMenuView extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(200, 50));
 
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            Color originalColor = backgroundColor;
-            Color hoverColor = backgroundColor.brighter();
-
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(hoverColor);
-            }
-
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(originalColor);
-            }
-        });
-
+        // Optional hover effect would require additional listeners
         return button;
     }
 
     // Methods to assign external actions to buttons
-    public void addPrimaryIndexListener(ActionListener listener) {
-        btnPrimaryIndex.addActionListener(listener);
+    public void addPartialSearchListener(ActionListener listener) {
+        btnPartialSearch.addActionListener(listener);
     }
 
-    public void addSecondaryIndexListener(ActionListener listener) {
-        btnSecondaryIndex.addActionListener(listener);
-    }
-
-    public void addMultilevelPrimaryListener(ActionListener listener) {
-        btnMultilevelPrimary.addActionListener(listener);
-    }
-
-    public void addMultilevelSecondaryListener(ActionListener listener) {
-        btnMultilevelSecondary.addActionListener(listener);
+    public void addTotalSearchListener(ActionListener listener) {
+        btnTotalSearch.addActionListener(listener);
     }
 
     public void addBackListener(ActionListener listener) {
-        for (ActionListener al : btnBack.getActionListeners()) {
-            btnBack.removeActionListener(al);
-        }
         btnBack.addActionListener(listener);
     }
 

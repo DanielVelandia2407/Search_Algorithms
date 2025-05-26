@@ -1,6 +1,6 @@
 package controller;
 
-import model.HashExpansionModel;
+import model.PartialExpansionModel;
 import view.HashExpansionView;
 import view.MainView;
 import view.SearchMenuView;
@@ -10,14 +10,14 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HashExpansionController {
-    private HashExpansionModel model;
+public class PartialExpansionController {
+    private PartialExpansionModel model;
     private HashExpansionView view;
     private List<Integer> clavesInsertadas = new ArrayList<>();
     private MainView mainView; // Referencia al menú principal
-    private SearchMenuView searchMenuView; // NUEVA: Referencia al menú de búsquedas
+    private SearchMenuView searchMenuView; // Referencia al menú de búsquedas
 
-    public HashExpansionController() {
+    public PartialExpansionController() {
         init();
     }
 
@@ -29,14 +29,14 @@ public class HashExpansionController {
     }
 
     /**
-     * Establece la referencia al menú de búsquedas (NUEVO)
+     * Establece la referencia al menú de búsquedas
      */
     public void setSearchMenuView(SearchMenuView searchMenuView) {
         this.searchMenuView = searchMenuView;
     }
 
     /**
-     * Obtiene la vista de expansión hash
+     * Obtiene la vista de expansión parcial
      */
     public HashExpansionView getView() {
         return view;
@@ -48,14 +48,17 @@ public class HashExpansionController {
             double dMax = Double.parseDouble(JOptionPane.showInputDialog("Ingrese densidad MÁXIMA (0-1):"));
             double dMin = Double.parseDouble(JOptionPane.showInputDialog("Ingrese densidad MÍNIMA (0-1):"));
 
-            model = new HashExpansionModel(n, dMax, dMin);
+            model = new PartialExpansionModel(n, dMax, dMin);
             view = new HashExpansionView();
+
+            // Cambiar el título para diferenciar de la expansión total
+            view.setTitle("Expansión y Reducción Parcial");
 
             view.setTabla(model.getTabla(), model.getColisiones());
             view.getBotonInsertar().addActionListener(this::onInsert);
             view.getBotonEliminar().addActionListener(this::onDelete);
 
-            // MODIFICADO: Botón "Volver" ahora regresa al menú de búsquedas si está disponible
+            // Botón "Volver" regresa al menú de búsquedas
             view.getBotonVolver().addActionListener(e -> {
                 view.setVisible(false);
                 if (searchMenuView != null) {
@@ -77,7 +80,7 @@ public class HashExpansionController {
     }
 
     /**
-     * Muestra la ventana de expansión hash
+     * Muestra la ventana de expansión parcial
      */
     public void showView() {
         if (view != null) {
@@ -116,7 +119,7 @@ public class HashExpansionController {
             int r = JOptionPane.showConfirmDialog(
                     view,
                     "Se superará la densidad máxima.\n¿Desea expandir la estructura?",
-                    "Expansión total",
+                    "Expansión parcial",
                     JOptionPane.YES_NO_OPTION
             );
             if (r == JOptionPane.YES_OPTION) {
@@ -127,7 +130,9 @@ public class HashExpansionController {
                 }
                 pasos = model.insertar(clave);
                 view.mostrarPasos(pasos.toArray(new String[0]));
-                clavesInsertadas.add(clave);
+                if (!pasos.contains("La estructura no admite claves repetidas.")) {
+                    clavesInsertadas.add(clave);
+                }
             } else {
                 view.mostrarPasos(new String[]{"Operación cancelada. No se insertó la clave."});
             }
@@ -160,7 +165,10 @@ public class HashExpansionController {
             return;
         }
 
+        // Paso 1: Simular eliminación para obtener DOR hipotético
         List<String> pasosPreview = model.eliminar(clave, true);
+        view.mostrarPasos(pasosPreview.toArray(new String[0])); // Mostrar cálculos
+
         boolean reducible = pasosPreview.stream()
                 .anyMatch(p -> p.contains("Se caerá por debajo de la densidad mínima."));
 
@@ -168,14 +176,15 @@ public class HashExpansionController {
             int r = JOptionPane.showConfirmDialog(
                     view,
                     "La densidad es baja.\n¿Desea reducir la estructura?",
-                    "Reducción total",
+                    "Reducción parcial",
                     JOptionPane.YES_NO_OPTION
             );
 
             if (r == JOptionPane.YES_OPTION) {
-                model.eliminar(clave, false);
+                // Eliminar clave y reducir
+                List<String> pasosEliminar = model.eliminar(clave, false);
+                view.mostrarPasos(pasosEliminar.toArray(new String[0]));
                 clavesInsertadas.remove((Integer) clave);
-
                 model.reducir(clavesInsertadas);
                 for (int k : new ArrayList<>(clavesInsertadas)) {
                     List<String> p2 = model.insertar(k);
@@ -186,6 +195,7 @@ public class HashExpansionController {
                 return;
             }
         } else {
+            // Eliminar normalmente
             List<String> pasos = model.eliminar(clave, false);
             view.mostrarPasos(pasos.toArray(new String[0]));
             clavesInsertadas.remove((Integer) clave);

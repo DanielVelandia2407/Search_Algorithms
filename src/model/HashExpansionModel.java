@@ -66,58 +66,58 @@ public class HashExpansionModel {
     }
 
     public List<String> eliminar(int clave, boolean permitirReduccion) {
-    List<String> pasos = new ArrayList<>();
+        List<String> pasos = new ArrayList<>();
 
-    if (!claves.contains(clave)) {
-        pasos.add("La clave no existe en la estructura.");
+        if (!claves.contains(clave)) {
+            pasos.add("La clave no existe en la estructura.");
+            return pasos;
+        }
+
+        int col = clave % n;
+        pasos.add(String.format("Densidad antes: %.2f", obtenerDensidad()));
+
+        // 1. Eliminar la clave
+        if (tabla[0][col] != null && tabla[0][col] == clave) {
+            tabla[0][col] = null;
+        } else if (tabla[1][col] != null && tabla[1][col] == clave) {
+            tabla[1][col] = null;
+        }
+        claves.remove((Integer) clave);
+        pasos.add("Eliminada clave " + clave + " de columna " + col);
+
+        // 2. Subir clave de fila 2 a fila 1 si aplica
+        if (tabla[0][col] == null && tabla[1][col] != null) {
+            tabla[0][col] = tabla[1][col];
+            tabla[1][col] = null;
+            pasos.add("Clave " + tabla[0][col] + " subida de fila 2 a fila 1");
+        }
+
+        // 3. Reubicar colisión externa (si hay)
+        if (!colisiones.get(col).isEmpty()) {
+            Integer nueva = colisiones.get(col).remove(0);
+            if (tabla[0][col] == null) {
+                tabla[0][col] = nueva;
+                claves.add(nueva);
+                pasos.add("Clave colisionada " + nueva + " reubicada en fila 1");
+            } else if (tabla[1][col] == null) {
+                tabla[1][col] = nueva;
+                claves.add(nueva);
+                pasos.add("Clave colisionada " + nueva + " reubicada en fila 2");
+            } else {
+                // no debería ocurrir, pero lo dejamos por seguridad
+                colisiones.get(col).add(0, nueva);
+            }
+        }
+
+        double densDesp = obtenerDensidad();
+        pasos.add(String.format("Densidad tras eliminar: %.2f", densDesp));
+
+        if (densDesp < densMinDelete && permitirReduccion) {
+            pasos.add("Se caerá por debajo de la densidad mínima.");
+        }
+
         return pasos;
     }
-
-    int col = clave % n;
-    pasos.add(String.format("Densidad antes: %.2f", obtenerDensidad()));
-
-    // 1. Eliminar la clave
-    if (tabla[0][col] != null && tabla[0][col] == clave) {
-        tabla[0][col] = null;
-    } else if (tabla[1][col] != null && tabla[1][col] == clave) {
-        tabla[1][col] = null;
-    }
-    claves.remove((Integer) clave);
-    pasos.add("Eliminada clave " + clave + " de columna " + col);
-
-    // 2. Subir clave de fila 2 a fila 1 si aplica
-    if (tabla[0][col] == null && tabla[1][col] != null) {
-        tabla[0][col] = tabla[1][col];
-        tabla[1][col] = null;
-        pasos.add("Clave " + tabla[0][col] + " subida de fila 2 a fila 1");
-    }
-
-    // 3. Reubicar colisión externa (si hay)
-    if (!colisiones.get(col).isEmpty()) {
-        Integer nueva = colisiones.get(col).remove(0);
-        if (tabla[0][col] == null) {
-            tabla[0][col] = nueva;
-            claves.add(nueva);
-            pasos.add("Clave colisionada " + nueva + " reubicada en fila 1");
-        } else if (tabla[1][col] == null) {
-            tabla[1][col] = nueva;
-            claves.add(nueva);
-            pasos.add("Clave colisionada " + nueva + " reubicada en fila 2");
-        } else {
-            // no debería ocurrir, pero lo dejamos por seguridad
-            colisiones.get(col).add(0, nueva);
-        }
-    }
-
-    double densDesp = obtenerDensidad();
-    pasos.add(String.format("Densidad tras eliminar: %.2f", densDesp));
-
-    if (densDesp < densMinDelete && permitirReduccion) {
-        pasos.add("Se caerá por debajo de la densidad mínima.");
-    }
-
-    return pasos;
-}
 
 
     public void expandir(List<Integer> anteriores) {
@@ -159,9 +159,9 @@ public class HashExpansionModel {
     }
 
     public double obtenerDensidad() {
-    int total = claves.size() + contarColisiones();
-    return (double) total / (filas * n);
-}
+        int total = claves.size() + contarColisiones();
+        return (double) total / (filas * n);
+    }
 
 
     public int obtenerClavesInsertadas() {
@@ -176,4 +176,3 @@ public class HashExpansionModel {
         return densMinDelete;
     }
 }
-
