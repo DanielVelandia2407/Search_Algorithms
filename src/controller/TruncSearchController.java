@@ -4,6 +4,7 @@ import view.HashAlgorithmView;
 import view.ColisionView;
 import view.TruncSearchView;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -14,13 +15,15 @@ import java.util.List;
 public class TruncSearchController {
 
     private final TruncSearchView view;
-    private final List<Integer> dataArray;
+    private final List<List<Integer>> hashTable;
     private HashAlgorithmView hashAlgorithmView;
     private int tableSize;
+    private int digitLimit = 2;
+    private int maxColumns = 1;
 
     public TruncSearchController(TruncSearchView view) {
         this.view = view;
-        this.dataArray = new ArrayList<>();
+        this.hashTable = new ArrayList<>();
 
         // Initialize components
         initComponents();
@@ -28,8 +31,19 @@ public class TruncSearchController {
         // Load data from file when creating the controller
         loadDataFromFile();
 
-        // Create hash table
-        this.tableSize = dataArray.isEmpty() ? 10 : dataArray.size();
+        if (hashTable.isEmpty()) {
+            this.tableSize = 10;
+            initializeEmptyHashTable();
+        } else {
+            this.tableSize = Math.max(10, hashTable.size());
+
+            // Ensure the table has exactly tableSize rows
+            while (hashTable.size() < this.tableSize) {
+                List<Integer> row = new ArrayList<>();
+                row.add(-1);
+                hashTable.add(row);
+            }
+        }
 
         // Display data in the table
         displayDataInTable();
@@ -40,32 +54,49 @@ public class TruncSearchController {
     }
 
     private void initComponents() {
-        // Add action listeners to buttons
         view.addSearchListener(e -> performSearch());
         view.addGenerateArrayListener(e -> {
             String input = view.getArraySize();
-            if (!input.isEmpty()) {
+            String digitLimitInput = view.getDigitLimit();
+
+            if (!input.isEmpty() && !digitLimitInput.isEmpty()) {
                 try {
                     int newSize = Integer.parseInt(input);
+                    digitLimit = Integer.parseInt(digitLimitInput);
+
+                    if (digitLimit < 1 || digitLimit > 10) {
+                        view.setResultMessage("El límite de dígitos debe estar entre 1 y 10", false);
+                        return;
+                    }
+
                     generateNewHashTable(newSize);
                 } catch (NumberFormatException ex) {
-                    view.setResultMessage("Por favor ingrese un tamaño válido", false);
+                    view.setResultMessage("Por favor ingrese valores numéricos válidos", false);
                 }
             } else {
-                view.setResultMessage("Por favor ingrese un tamaño para la tabla", false);
+                view.setResultMessage("Por favor ingrese el tamaño de la tabla y el límite de dígitos", false);
             }
         });
         view.addInsertValueListener(e -> {
             String input = view.getInsertValue();
-            if (!input.isEmpty()) {
+            String digitLimitInput = view.getDigitLimit();
+
+            if (!input.isEmpty() && !digitLimitInput.isEmpty()) {
                 try {
                     int value = Integer.parseInt(input);
+                    digitLimit = Integer.parseInt(digitLimitInput);
+
+                    if (!isValidDigitCount(value, digitLimit)) {
+                        view.setResultMessage("La clave debe tener exactamente " + digitLimit + " dígito(s)", false);
+                        return;
+                    }
+
                     insertValue(value);
                 } catch (NumberFormatException ex) {
-                    view.setResultMessage("Por favor ingrese un valor numérico válido", false);
+                    view.setResultMessage("Por favor ingrese valores numéricos válidos", false);
                 }
             } else {
-                view.setResultMessage("Por favor ingrese un valor para insertar", false);
+                view.setResultMessage("Por favor ingrese una clave para insertar y el límite de dígitos", false);
             }
         });
         view.addDeleteValueListener(e -> {
@@ -75,90 +106,220 @@ public class TruncSearchController {
                     int value = Integer.parseInt(input);
                     deleteValue(value);
                 } catch (NumberFormatException ex) {
-                    view.setResultMessage("Por favor ingrese un valor numérico válido", false);
+                    view.setResultMessage("Por favor ingrese una clave numérica válida", false);
                 }
             } else {
-                view.setResultMessage("Por favor ingrese un valor para eliminar", false);
+                view.setResultMessage("Por favor ingrese una clave para eliminar", false);
             }
         });
         view.addBackListener(e -> goBack());
     }
 
+    // Method to validate the number of digits
+    private boolean isValidDigitCount(int value, int digitLimit) {
+        String valueStr = String.valueOf(Math.abs(value));
+        return valueStr.length() == digitLimit;
+    }
+
+    // Method to get the minimum range based on the digit limit
+    private int getMinValue(int digitLimit) {
+        if (digitLimit == 1) return 0;
+        return (int) Math.pow(10, digitLimit - 1);
+    }
+
+    // Method to get the maximum range based on the digit limit
+    private int getMaxValue(int digitLimit) {
+        return (int) Math.pow(10, digitLimit) - 1;
+    }
+
+    // Method to load data from file
     private void loadDataFromFile() {
-        dataArray.clear();
+        hashTable.clear();
 
         try {
             File file = new File("src/utilities/datos-hash-truncamiento.txt");
 
             if (!file.exists()) {
-                System.err.println("El archivo de datos no existe: " + file.getAbsolutePath());
-                for (int i = 0; i < tableSize; i++) {
-                    dataArray.add(-1);
-                }
+                System.err.println("Data file does not exist: " + file.getAbsolutePath());
                 return;
             }
 
+            System.out.println("=== FILE LOADING DEBUG ===");
+            System.out.println("File found: " + file.getAbsolutePath());
+
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line = reader.readLine();
+                String firstLine = reader.readLine();
+                System.out.println("First line: " + firstLine);
 
-                if (line != null) {
-                    // Remove brackets if present
-                    line = line.replace("[", "").replace("]", "");
+                if (firstLine == null || firstLine.trim().isEmpty()) {
+                    System.out.println("First line empty, nothing to load");
+                    return;
+                }
 
-                    // Split by comma
-                    String[] values = line.split(",");
-
-                    // Convert to integers and add to array
-                    for (String value : values) {
-                        try {
-                            int num = Integer.parseInt(value.trim());
-                            dataArray.add(num);
-                        } catch (NumberFormatException e) {
-                            System.err.println("Valor no numérico encontrado: " + value);
-                        }
-                    }
+                if (firstLine.startsWith("[") && firstLine.endsWith("]") && !firstLine.contains("],")) {
+                    System.out.println("Old format detected");
+                    loadOldFormat(firstLine);
+                } else {
+                    System.out.println("New format detected");
+                    loadNewFormat(firstLine, reader);
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Error al leer el archivo: " + e.getMessage());
-            e.printStackTrace();
-        }
 
-        if (dataArray.isEmpty()) {
-            for (int i = 0; i < tableSize; i++) {
-                dataArray.add(-1);
+            System.out.println("Total rows loaded: " + hashTable.size());
+            System.out.println("Loaded content:");
+            for (int i = 0; i < hashTable.size(); i++) {
+                System.out.println("  Row " + i + ": " + hashTable.get(i));
             }
+            System.out.println("=== END LOADING DEBUG ===");
+
+        } catch (IOException e) {
+            System.err.println("Error reading the file: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    private void createHashTable() {
-        if (dataArray.isEmpty()) {
-            for (int i = 0; i < tableSize; i++) {
-                dataArray.add(-1);
+    private void loadOldFormat(String line) {
+        System.out.println("Loading old format: " + line);
+        line = line.replace("[", "").replace("]", "");
+        String[] values = line.split(",");
+
+        maxColumns = 1;
+
+        for (String value : values) {
+            try {
+                int num = Integer.parseInt(value.trim());
+                List<Integer> row = new ArrayList<>();
+                row.add(num);
+                hashTable.add(row);
+                System.out.println("  Added row: [" + num + "]");
+            } catch (NumberFormatException e) {
+                System.err.println("Non-numeric value found: " + value);
+                List<Integer> row = new ArrayList<>();
+                row.add(-1);
+                hashTable.add(row);
             }
         }
 
-        if (dataArray.size() < tableSize) {
-            int toAdd = tableSize - dataArray.size();
-            for (int i = 0; i < toAdd; i++) {
-                dataArray.add(-1);
-            }
-        } else if (dataArray.size() > tableSize) {
-            while (dataArray.size() > tableSize) {
-                dataArray.remove(dataArray.size() - 1);
+        System.out.println("Loaded " + hashTable.size() + " rows from old format");
+    }
+
+    private void loadNewFormat(String firstLine, BufferedReader reader) throws IOException {
+        maxColumns = 1;
+        int lineNumber = 1;
+
+        // Process first line
+        if (!firstLine.startsWith("#")) {
+            System.out.println("Processing line " + lineNumber + ": " + firstLine);
+            processRowLine(firstLine);
+        } else {
+            System.out.println("Skipping comment line " + lineNumber + ": " + firstLine);
+        }
+
+        // Process remaining lines
+        String line;
+        while ((line = reader.readLine()) != null) {
+            lineNumber++;
+            if (!line.trim().isEmpty() && !line.startsWith("#")) {
+                System.out.println("Processing line " + lineNumber + ": " + line);
+                processRowLine(line);
+            } else if (line.startsWith("#")) {
+                System.out.println("Skipping comment line " + lineNumber + ": " + line);
+            } else {
+                System.out.println("Skipping empty line " + lineNumber);
             }
         }
+
+        System.out.println("Total lines processed: " + lineNumber);
+        System.out.println("Rows added to hashTable: " + hashTable.size());
+    }
+
+    private void processRowLine(String line) {
+        System.out.println("Processing line: '" + line + "'");
+        List<Integer> row = new ArrayList<>();
+
+        // Remove brackets if present
+        line = line.replace("[", "").replace("]", "");
+
+        if (!line.trim().isEmpty()) {
+            // Split by comma
+            String[] values = line.split(",");
+
+            // Convert to integers and add to row
+            for (String value : values) {
+                try {
+                    int num = Integer.parseInt(value.trim());
+                    row.add(num);
+                    System.out.println("  Added value: " + num);
+                } catch (NumberFormatException e) {
+                    System.err.println("Non-numeric value found: " + value);
+                    row.add(-1);
+                }
+            }
+        }
+
+        // If the row is empty, add -1
+        if (row.isEmpty()) {
+            row.add(-1);
+            System.out.println("  Empty row, adding -1");
+        }
+
+        maxColumns = Math.max(maxColumns, row.size());
+        hashTable.add(row);
+        System.out.println("  Fila agregada: " + row + ", maxColumns=" + maxColumns);
+    }
+
+    private void initializeEmptyHashTable() {
+        hashTable.clear();
+        maxColumns = 1;
+
+        for (int i = 0; i < tableSize; i++) {
+            List<Integer> row = new ArrayList<>();
+            row.add(-1);
+            hashTable.add(row);
+        }
+        System.out.println("Tabla hash inicializada con " + tableSize + " filas vacías");
     }
 
     private void displayDataInTable() {
-        Object[][] tableData = new Object[tableSize][2];
+        System.out.println("=== DEBUGGING TABLA ===");
+        System.out.println("tableSize=" + tableSize);
+        System.out.println("hashTable.size()=" + hashTable.size());
+        System.out.println("maxColumns=" + maxColumns);
+
+        // Create dynamic headers based on maximum columns
+        String[] headers = new String[maxColumns + 1];
+        headers[0] = "Posición";
+        for (int i = 1; i <= maxColumns; i++) {
+            headers[i] = "Clave " + i;
+        }
+
+        System.out.println("Headers: " + java.util.Arrays.toString(headers));
+
+        // Create table data
+        Object[][] tableData = new Object[tableSize][maxColumns + 1];
 
         for (int i = 0; i < tableSize; i++) {
             tableData[i][0] = i + 1;
-            Integer value = i < dataArray.size() ? dataArray.get(i) : -1;
-            tableData[i][1] = (value != null && value == -1) ? "" : value;
+
+            List<Integer> row = i < hashTable.size() ? hashTable.get(i) : null;
+
+            // Fill key columns
+            for (int j = 1; j <= maxColumns; j++) {
+                int valueIndex = j - 1;
+                if (row != null && valueIndex < row.size()) {
+                    Integer value = row.get(valueIndex);
+                    tableData[i][j] = (value != null && value == -1) ? "" : value;
+                } else {
+                    tableData[i][j] = "";
+                }
+            }
+
+            System.out.println("TableData fila " + i + ": " + java.util.Arrays.toString(tableData[i]));
         }
-        view.setTableData(tableData);
+
+        System.out.println("Enviando a vista: " + tableData.length + " filas");
+        view.setTableData(tableData, headers);
+        System.out.println("=== FIN DEBUGGING ===");
     }
 
     private int getHashByDigitExtraction(int value) {
@@ -168,9 +329,7 @@ public class TruncSearchController {
         // Verificar que todas las posiciones existan en el valor
         for (int position : positions) {
             int index = position - 1;
-            if (index >= valueStr.length()) {
-                view.setResultMessage("Error: La posición " + position + " no existe en el valor " + value +
-                        " que solo tiene " + valueStr.length() + " dígitos.", false);
+            if (index >= valueStr.length() || index < 0) {
                 return -1; // Valor especial para indicar error
             }
         }
@@ -198,7 +357,7 @@ public class TruncSearchController {
         // Verificar que todas las posiciones existan
         for (int position : positions) {
             int index = position - 1;
-            if (index >= valueStr.length()) {
+            if (index >= valueStr.length() || index < 0) {
                 return "No se puede calcular el hash: La posición " + position +
                         " no existe en el valor " + value + " que solo tiene " + valueStr.length() + " dígitos.";
             }
@@ -218,70 +377,218 @@ public class TruncSearchController {
             extractedDigits.append(valueStr.charAt(index));
         }
 
-        int hash = Integer.parseInt(extractedDigits.toString()) % tableSize;
+        int extractedNumber = Integer.parseInt(extractedDigits.toString());
+        int hash = extractedNumber % tableSize;
 
         return "Hash de " + value + ": extrayendo dígitos en posiciones [" + positionsDescription +
-                "] = " + hash;
+                "] = " + extractedDigits + " % " + tableSize + " = " + (hash + 1);
     }
 
+    // Method to perform search
     private void performSearch() {
+        if (view.isVisualizationEnabled()) {
+            performAnimatedSearch();
+        } else {
+            performNormalSearch();
+        }
+    }
+
+    // Search with no animation
+    private void performNormalSearch() {
         String input = view.getSearchValue();
 
         if (input.isEmpty()) {
-            view.setResultMessage("Por favor ingrese un valor para buscar", false);
+            view.setResultMessage("Por favor ingrese una clave para buscar", false);
             return;
         }
 
         try {
             int valueToSearch = Integer.parseInt(input);
-            int hashPosition = getHashByDigitExtraction(valueToSearch);
+            int originalHashPosition = getHashByDigitExtraction(valueToSearch);
 
             // Verificar si hubo error en la extracción de dígitos
-            if (hashPosition == -1) {
-                return; // El mensaje de error ya fue mostrado en getHashByDigitExtraction
-            }
-
-            String hashDescription = getHashCalculationDescription(valueToSearch);
-
-            // Si la descripción indica error, mostrarla y salir
-            if (hashDescription.startsWith("No se puede calcular el hash")) {
+            if (originalHashPosition == -1) {
+                String hashDescription = getHashCalculationDescription(valueToSearch);
                 view.setResultMessage(hashDescription, false);
                 return;
             }
 
-            Integer foundPosition = searchInOriginalPosition(valueToSearch, hashPosition);
+            // Clear previous highlights
+            view.clearHighlights();
+
+            Integer foundPosition = searchInOriginalPosition(valueToSearch, originalHashPosition);
 
             if (foundPosition == null) {
-                foundPosition = searchSequential(valueToSearch, hashPosition);
+                foundPosition = searchSequential(valueToSearch, originalHashPosition);
             }
 
             if (foundPosition == null) {
-                foundPosition = searchExponential(valueToSearch, hashPosition);
+                foundPosition = searchExponential(valueToSearch, originalHashPosition);
             }
 
             if (foundPosition == null) {
-                foundPosition = searchInExtendedTable(valueToSearch, hashPosition);
+                foundPosition = searchInExtendedTable(valueToSearch, originalHashPosition);
             }
+
+            String hashDescription = getHashCalculationDescription(valueToSearch);
 
             if (foundPosition != null) {
-                view.setResultMessage("Valor " + valueToSearch + " encontrado en la posición " + foundPosition +
-                        (foundPosition == hashPosition ? " (posición hash original)" :
-                                " (reubicado por colisión, hash original: " + hashPosition + ")") +
-                        ". " + hashDescription, true);
-                view.highlightRow(foundPosition);
+                view.highlightFoundItem(foundPosition);
+                view.setResultMessage("Clave " + valueToSearch + " encontrada en la posición " +
+                                (foundPosition + 1) +
+                                (foundPosition == originalHashPosition ?
+                                        " (posición hash original)" :
+                                        " (reubicada por colisión, hash original: " + (originalHashPosition + 1) + ")") +
+                                "\n" + hashDescription,
+                        true);
             } else {
-                view.setResultMessage("Valor " + valueToSearch + " no encontrado. " + hashDescription +
+                view.setResultMessage("Clave " + valueToSearch + " no encontrada. " + hashDescription +
                         ". Se buscó en todas las posiciones posibles.", false);
             }
 
         } catch (NumberFormatException e) {
-            view.setResultMessage("Por favor ingrese un valor numérico válido", false);
+            view.setResultMessage("Por favor ingrese una clave numérica válida", false);
+        }
+    }
+
+    // Animation for search
+    private void performAnimatedSearch() {
+        String input = view.getSearchValue();
+
+        if (input.isEmpty()) {
+            view.setResultMessage("Por favor ingrese una clave para buscar", false);
+            return;
+        }
+
+        try {
+            int valueToSearch = Integer.parseInt(input);
+            int originalHashPosition = getHashByDigitExtraction(valueToSearch);
+
+            // Verificar si hubo error en la extracción de dígitos
+            if (originalHashPosition == -1) {
+                String hashDescription = getHashCalculationDescription(valueToSearch);
+                view.setResultMessage(hashDescription, false);
+                return;
+            }
+
+            view.clearHighlights();
+
+            SwingWorker<Integer, Integer> worker = new SwingWorker<Integer, Integer>() {
+                @Override
+                protected Integer doInBackground() throws Exception {
+                    publish(originalHashPosition);
+                    Thread.sleep(500);
+
+                    Integer foundPosition = searchInOriginalPosition(valueToSearch, originalHashPosition);
+                    if (foundPosition != null) {
+                        return foundPosition;
+                    }
+
+                    int position = (originalHashPosition + 1) % tableSize;
+                    int attempts = 0;
+
+                    while (position != originalHashPosition && attempts < tableSize) {
+                        publish(position);
+                        Thread.sleep(400);
+
+                        if (position < hashTable.size()) {
+                            List<Integer> row = hashTable.get(position);
+                            for (Integer value : row) {
+                                if (value == valueToSearch) {
+                                    return position;
+                                }
+                            }
+                        }
+                        position = (position + 1) % tableSize;
+                        attempts++;
+                    }
+
+                    int i = 1;
+                    attempts = 0;
+
+                    while (attempts < tableSize) {
+                        int expPosition = (originalHashPosition + (i * i)) % tableSize;
+                        publish(expPosition);
+                        Thread.sleep(400);
+
+                        if (expPosition >= 0 && expPosition < hashTable.size()) {
+                            List<Integer> row = hashTable.get(expPosition);
+                            for (Integer value : row) {
+                                if (value == valueToSearch) {
+                                    return expPosition;
+                                }
+                            }
+                        }
+
+                        i++;
+                        attempts++;
+                    }
+
+                    for (int j = tableSize - 1; j >= 0; j--) {
+                        if (j >= hashTable.size()) {
+                            continue;
+                        }
+
+                        publish(j);
+                        Thread.sleep(400);
+
+                        List<Integer> row = hashTable.get(j);
+                        for (Integer value : row) {
+                            if (value == valueToSearch) {
+                                return j;
+                            }
+                        }
+                    }
+
+                    return -1;
+                }
+
+                @Override
+                protected void process(List<Integer> chunks) {
+                    int currentIndex = chunks.get(chunks.size() - 1);
+                    view.highlightSearchProgress(currentIndex);
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        int position = get();
+                        int originalHashPosition = getHashByDigitExtraction(valueToSearch);
+                        String hashDescription = getHashCalculationDescription(valueToSearch);
+
+                        if (position != -1) {
+                            view.highlightFoundItem(position);
+                            view.setResultMessage("Clave " + valueToSearch + " encontrada en la posición " +
+                                            (position + 1) +
+                                            (position == originalHashPosition ?
+                                                    " (posición hash original)" :
+                                                    " (reubicada por colisión, hash original: " + (originalHashPosition + 1) + ")") +
+                                            "\n" + hashDescription,
+                                    true);
+                        } else {
+                            view.clearHighlights();
+                            view.setResultMessage("Clave " + valueToSearch + " no encontrada. " + hashDescription +
+                                    ". Se buscó en todas las posiciones posibles.", false);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            worker.execute();
+        } catch (NumberFormatException e) {
+            view.setResultMessage("Por favor ingrese una clave numérica válida", false);
         }
     }
 
     private Integer searchInOriginalPosition(int valueToSearch, int hashPosition) {
-        if (hashPosition < dataArray.size() && dataArray.get(hashPosition) == valueToSearch) {
-            return hashPosition;
+        if (hashPosition < hashTable.size()) {
+            List<Integer> row = hashTable.get(hashPosition);
+            for (int i = 0; i < row.size(); i++) {
+                if (row.get(i) == valueToSearch) {
+                    return hashPosition;
+                }
+            }
         }
         return null;
     }
@@ -291,8 +598,13 @@ public class TruncSearchController {
         int attempts = 0;
 
         while (position != originalHashPos && attempts < tableSize) {
-            if (position < dataArray.size() && dataArray.get(position) == valueToSearch) {
-                return position;
+            if (position < hashTable.size()) {
+                List<Integer> row = hashTable.get(position);
+                for (Integer value : row) {
+                    if (value == valueToSearch) {
+                        return position;
+                    }
+                }
             }
             position = (position + 1) % tableSize;
             attempts++;
@@ -308,25 +620,32 @@ public class TruncSearchController {
         while (attempts < tableSize) {
             int position = (originalHashPos + (i * i)) % tableSize;
 
-            if (position >= 0 && position < dataArray.size() && dataArray.get(position) == valueToSearch) {
-                return position;
+            if (position >= 0 && position < hashTable.size()) {
+                List<Integer> row = hashTable.get(position);
+                for (Integer value : row) {
+                    if (value == valueToSearch) {
+                        return position;
+                    }
+                }
             }
 
             i++;
             attempts++;
         }
-
         return null;
     }
 
     private Integer searchInExtendedTable(int valueToSearch, int originalHashPos) {
         for (int i = tableSize - 1; i >= 0; i--) {
-            if (i >= dataArray.size()) {
+            if (i >= hashTable.size()) {
                 continue;
             }
 
-            if (dataArray.get(i) == valueToSearch) {
-                return i;
+            List<Integer> row = hashTable.get(i);
+            for (Integer value : row) {
+                if (value == valueToSearch) {
+                    return i;
+                }
             }
         }
 
@@ -336,154 +655,166 @@ public class TruncSearchController {
     private void generateNewHashTable(int newSize) {
         this.tableSize = newSize;
 
-        dataArray.clear();
+        hashTable.clear();
+        maxColumns = 1;
+
         for (int i = 0; i < newSize; i++) {
-            dataArray.add(-1);
+            List<Integer> row = new ArrayList<>();
+            row.add(-1);
+            hashTable.add(row);
         }
-        try {
-            File file = new File("src/utilities/datos-hash-truncamiento.txt");
-            try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
-                writer.println(dataArray.toString());
-            }
-        } catch (IOException e) {
-            System.err.println("Error al escribir en el archivo: " + e.getMessage());
-            e.printStackTrace();
-        }
-        // Display the new array in the table
+
+        saveDataToFile();
         displayDataInTable();
-        view.setResultMessage("Tabla hash de tamaño " + newSize + " generada correctamente", true);
+
+        int minValue = getMinValue(digitLimit);
+        int maxValue = getMaxValue(digitLimit);
+        view.setResultMessage("Tabla hash generada. Rango permitido: " + minValue + " - " + maxValue, true);
     }
 
     // Method to insert values using digit extraction hash function
     public void insertValue(int value) {
+        // Check if value already exists
+        for (List<Integer> row : hashTable) {
+            for (Integer existingValue : row) {
+                if (existingValue != null && existingValue != -1 && existingValue == value) {
+                    view.setResultMessage("La clave " + value + " ya existe en la tabla hash", false);
+                    return;
+                }
+            }
+        }
+
         int hashPosition = getHashByDigitExtraction(value);
 
         // Verificar si hubo error en la extracción de dígitos
         if (hashPosition == -1) {
-            return; // El mensaje de error ya fue mostrado en getHashByDigitExtraction
-        }
-
-        String hashDescription = getHashCalculationDescription(value);
-
-        // Si la descripción indica error, mostrarla y salir
-        if (hashDescription.startsWith("No se puede calcular el hash")) {
+            String hashDescription = getHashCalculationDescription(value);
             view.setResultMessage(hashDescription, false);
             return;
         }
 
-        if (hashPosition < dataArray.size() && dataArray.get(hashPosition) != -1) {
-            handleCollision(value, hashPosition, hashDescription);
-            return;
-        }
+        if (hashPosition < hashTable.size()) {
+            List<Integer> row = hashTable.get(hashPosition);
 
-        if (hashPosition < dataArray.size()) {
-            dataArray.set(hashPosition, value);
-            saveDataToFile();
-            displayDataInTable();
-            view.setResultMessage("Valor " + value + " insertado en la posición hash " + hashPosition + ". " + hashDescription, true);
+            if (row.get(0) == -1) {
+                row.set(0, value);
+                saveDataToFile();
+                displayDataInTable();
+
+                String hashDescription = getHashCalculationDescription(value);
+                view.setResultMessage("Clave " + value + " insertada en la posición hash " + (hashPosition + 1) + "\n" + hashDescription, true);
+            } else {
+                handleCollision(value, hashPosition);
+            }
         } else {
-            view.setResultMessage("Posición hash " + hashPosition + " fuera de rango. " + hashDescription, false);
+            view.setResultMessage("Posición hash " + (hashPosition + 1) + " fuera de rango", false);
         }
     }
 
-    private void handleCollision(int valueToInsert, int hashPosition, String hashDescription) {
-        int currentValue = dataArray.get(hashPosition);
+    private void handleCollision(int valueToInsert, int hashPosition) {
+        List<Integer> row = hashTable.get(hashPosition);
+        int currentValue = row.get(0);
+
         ColisionView colisionView = new ColisionView();
         colisionView.setCollisionInfo(valueToInsert, hashPosition);
 
-        view.setResultMessage("Colisión detectada: Valor " + valueToInsert + " debería ir en la posición " + hashPosition +
-                " que ya está ocupada por " + currentValue + ". " + hashDescription, false);
+        view.setResultMessage("Colisión detectada: Clave " + valueToInsert +
+                " debería ir en la posición " + (hashPosition + 1) +
+                " que ya está ocupada por " + currentValue, false);
 
         colisionView.addSequentialSolutionListener(e -> {
-            solveCollisionSequential(valueToInsert, hashPosition, hashDescription);
+            solveCollisionSequential(valueToInsert, hashPosition);
             colisionView.dispose();
         });
 
         colisionView.addExponentialSolutionListener(e -> {
-            solveCollisionExponential(valueToInsert, hashPosition, hashDescription);
+            solveCollisionExponential(valueToInsert, hashPosition);
             colisionView.dispose();
         });
 
         colisionView.addTableSolutionListener(e -> {
-            solveCollisionWithTable(valueToInsert, hashPosition, hashDescription);
+            solveCollisionWithAdditionalColumn(valueToInsert, hashPosition);
             colisionView.dispose();
         });
 
         colisionView.addCancelListener(e -> {
             colisionView.dispose();
-            view.setResultMessage("Inserción cancelada: colisión en posición " + hashPosition + ". " + hashDescription, false);
+            view.setResultMessage("Inserción cancelada: colisión en posición " + (hashPosition + 1), false);
         });
 
         colisionView.showWindow();
     }
 
-    private void solveCollisionSequential(int valueToInsert, int originalHashPos, String hashDescription) {
+    private void solveCollisionSequential(int valueToInsert, int originalHashPos) {
         int position = (originalHashPos + 1) % tableSize;
         int attempts = 0;
 
         while (position != originalHashPos && attempts < tableSize) {
-            if (dataArray.get(position) == -1) {
-                dataArray.set(position, valueToInsert);
+            List<Integer> row = hashTable.get(position);
+            if (row.get(0) == -1) {
+                row.set(0, valueToInsert);
                 saveDataToFile();
                 displayDataInTable();
-                view.setResultMessage("Valor " + valueToInsert + " insertado en posición " + position +
-                        " mediante solución secuencial (colisión en posición " + originalHashPos + ")." +
-                        " " + hashDescription, true);
+                view.setResultMessage("Clave " + valueToInsert + " insertada en posición " + (position + 1) +
+                        " mediante solución secuencial (colisión en posición " + (originalHashPos + 1) + ")", true);
                 return;
             }
             position = (position + 1) % tableSize;
             attempts++;
         }
-        view.setResultMessage("No se pudo insertar " + valueToInsert + ": tabla llena. " + hashDescription, false);
+        view.setResultMessage("No se pudo insertar " + valueToInsert + ": tabla llena", false);
     }
 
-    private void solveCollisionExponential(int valueToInsert, int originalHashPos, String hashDescription) {
+    private void solveCollisionExponential(int valueToInsert, int originalHashPos) {
         int i = 1;
         int attempts = 0;
 
         while (attempts < tableSize) {
             int position = (originalHashPos + (i * i)) % tableSize;
 
-            if (position >= 0 && position < dataArray.size() && dataArray.get(position) == -1) {
-                dataArray.set(position, valueToInsert);
-                saveDataToFile();
-                displayDataInTable();
-                view.setResultMessage("Valor " + valueToInsert + " insertado en posición " + position +
-                        " mediante solución exponencial (colisión en posición " + originalHashPos + ")." +
-                        " " + hashDescription, true);
-                return;
+            if (position >= 0 && position < hashTable.size()) {
+                List<Integer> row = hashTable.get(position);
+                if (row.get(0) == -1) {
+                    row.set(0, valueToInsert);
+                    saveDataToFile();
+                    displayDataInTable();
+                    view.setResultMessage("Clave " + valueToInsert + " insertada en posición " + (position + 1) +
+                            " mediante solución exponencial (colisión en posición " + (originalHashPos + 1) + ")", true);
+                    return;
+                }
             }
 
             i++;
             attempts++;
         }
-        view.setResultMessage("No se pudo insertar " + valueToInsert + " usando prueba cuadrática. " + hashDescription, false);
+        view.setResultMessage("No se pudo insertar " + valueToInsert + " usando prueba cuadrática", false);
     }
 
-    private void solveCollisionWithTable(int valueToInsert, int originalHashPos, String hashDescription) {
-        int newSize = tableSize + 1;
+    private void solveCollisionWithAdditionalColumn(int valueToInsert, int originalHashPos) {
+        List<Integer> row = hashTable.get(originalHashPos);
 
-        while (dataArray.size() < newSize) {
-            dataArray.add(-1);
-        }
+        row.add(valueToInsert);
 
-        int overflowPosition = tableSize;
-        dataArray.set(overflowPosition, valueToInsert);
-
-        tableSize = newSize;
+        maxColumns = Math.max(maxColumns, row.size());
 
         saveDataToFile();
         displayDataInTable();
-        view.setResultMessage("Valor " + valueToInsert + " insertado en posición " + overflowPosition +
-                " mediante solución de tabla (colisión en posición " + originalHashPos + ")." +
-                " " + hashDescription, true);
+
+        view.setResultMessage("Clave " + valueToInsert + " insertada en posición " + (originalHashPos + 1) +
+                ", columna " + row.size() + " (solución por columnas adicionales)", true);
     }
 
     private void saveDataToFile() {
         try {
             File file = new File("src/utilities/datos-hash-truncamiento.txt");
             try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
-                writer.println(dataArray.toString());
+                for (List<Integer> row : hashTable) {
+                    writer.println(row.toString());
+                }
+
+                writer.println("# Formato: cada línea representa una fila de la tabla hash");
+                writer.println("# [valor1, valor2, ...] para múltiples valores en la misma posición");
+                writer.println("# [-1] para posiciones vacías");
             }
         } catch (IOException e) {
             System.err.println("Error al escribir en el archivo: " + e.getMessage());
@@ -493,54 +824,59 @@ public class TruncSearchController {
 
     // Method to delete a value
     public void deleteValue(int value) {
-        // Calcular posición hash usando función de extracción de dígitos
-        int hashPosition = getHashByDigitExtraction(value);
+        boolean found = false;
+        int foundRow = -1;
+        int foundColumn = -1;
 
-        // Verificar si hubo error en la extracción de dígitos
-        if (hashPosition == -1) {
-            return; // El mensaje de error ya fue mostrado en getHashByDigitExtraction
+        for (int i = 0; i < hashTable.size(); i++) {
+            List<Integer> row = hashTable.get(i);
+            for (int j = 0; j < row.size(); j++) {
+                if (row.get(j) != null && row.get(j) == value) {
+                    found = true;
+                    foundRow = i;
+                    foundColumn = j;
+                    break;
+                }
+            }
+            if (found) break;
         }
 
-        String hashDescription = getHashCalculationDescription(value);
+        if (found) {
+            List<Integer> row = hashTable.get(foundRow);
 
-        // Si la descripción indica error, mostrarla y salir
-        if (hashDescription.startsWith("No se puede calcular el hash")) {
-            view.setResultMessage(hashDescription, false);
-            return;
-        }
-
-        // Verificar si el valor está en esa posición
-        if (hashPosition < dataArray.size() && dataArray.get(hashPosition) == value) {
-            dataArray.set(hashPosition, -1); // Marcar como vacío
-
-            // Guardar en el archivo
-            saveDataToFile();
-
-            // Actualizar la tabla
-            displayDataInTable();
-            view.setResultMessage("Valor " + value + " eliminado de la posición hash " + hashPosition + ". " + hashDescription, true);
-        } else {
-            // Si no está en la posición hash, intentar buscarlo en otra posición
-            Integer foundPosition = searchSequential(value, hashPosition);
-
-            if (foundPosition == null) {
-                foundPosition = searchExponential(value, hashPosition);
-            }
-
-            if (foundPosition == null) {
-                foundPosition = searchInExtendedTable(value, hashPosition);
-            }
-
-            if (foundPosition != null) {
-                dataArray.set(foundPosition, -1); // Eliminarlo
-                saveDataToFile();
-                displayDataInTable();
-                view.setResultMessage("Valor " + value + " eliminado de la posición " + foundPosition +
-                        " (reubicado por colisión, hash original: " + hashPosition + ")." +
-                        " " + hashDescription, true);
+            if (foundColumn == 0 && row.size() > 1) {
+                row.remove(0);
+            } else if (foundColumn == row.size() - 1) {
+                row.remove(foundColumn);
             } else {
-                view.setResultMessage("Valor " + value + " no encontrado. " + hashDescription, false);
+                row.set(foundColumn, -1);
             }
+
+            if (row.isEmpty()) {
+                row.add(-1);
+            }
+
+            maxColumns = 1;
+            for (List<Integer> tableRow : hashTable) {
+                maxColumns = Math.max(maxColumns, tableRow.size());
+            }
+
+            saveDataToFile();
+            displayDataInTable();
+
+            int hashPosition = getHashByDigitExtraction(value);
+            String hashDescription = getHashCalculationDescription(value);
+
+            if (foundRow == hashPosition) {
+                view.setResultMessage("Clave " + value + " eliminada de la posición hash original " + (foundRow + 1) +
+                        ", columna " + (foundColumn + 1) + "\n" + hashDescription, true);
+            } else {
+                view.setResultMessage("Clave " + value + " eliminada de la posición " + (foundRow + 1) +
+                        ", columna " + (foundColumn + 1) +
+                        " (hash original: " + (hashPosition + 1) + ")\n" + hashDescription, true);
+            }
+        } else {
+            view.setResultMessage("Clave " + value + " no encontrada en la tabla hash", false);
         }
     }
 

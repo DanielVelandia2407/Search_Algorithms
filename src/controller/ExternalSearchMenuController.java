@@ -2,7 +2,9 @@ package controller;
 
 import view.ExternalSearchMenuView;
 import view.MainView;
-import view.SequentialSearchView;
+import view.ExternalSequentialSearchView;
+import view.ExternalBinarySearchView;
+import view.ExternalHashAlgorithmView;
 import view.BinarySearchView;
 import view.HashAlgorithmView;
 
@@ -30,7 +32,7 @@ public class ExternalSearchMenuController {
         this.externalSearchMenuView.addBackListener(e -> goBackToMainMenu());
 
         // Sequential Search button
-        this.externalSearchMenuView.addSequentialSearchListener(e -> openSequentialSearch());
+        this.externalSearchMenuView.addSequentialSearchListener(e -> openExternalSequentialSearch());
 
         // Binary Search button
         this.externalSearchMenuView.addBinarySearchListener(e -> openBinarySearch());
@@ -50,21 +52,78 @@ public class ExternalSearchMenuController {
     }
 
     /**
-     * Open Sequential Search view with its controller
+     * Open External Sequential Search view with its controller
      */
-    private void openSequentialSearch() {
+    private void openExternalSequentialSearch() {
+        try {
+            // Create the external sequential search view
+            ExternalSequentialSearchView sequentialView = new ExternalSequentialSearchView();
+
+            // Create the controller and link it with the view
+            ExternalSequentialSearchController sequentialController =
+                    new ExternalSequentialSearchController(sequentialView);
+
+            // Set the reference to this menu for back navigation
+            sequentialController.setMenuView(this.externalSearchMenuView);
+
+            // Hide current menu and show the sequential search view
+            this.externalSearchMenuView.setVisible(false);
+            sequentialView.showWindow();
+
+        } catch (Exception e) {
+            System.err.println("Error al abrir la búsqueda secuencial externa: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
-     * Open Binary Search view with its controller
+     * Open External Binary Search view with its controller
      */
     private void openBinarySearch() {
+        try {
+            // Create the external binary search view
+            ExternalBinarySearchView binaryView = new ExternalBinarySearchView();
+
+            // Create the controller and link it with the view
+            ExternalBinarySearchController binaryController =
+                    new ExternalBinarySearchController(binaryView);
+
+            // Set the reference to this menu for back navigation
+            binaryController.setMenuView(this.externalSearchMenuView);
+
+            // Hide current menu and show the binary search view
+            this.externalSearchMenuView.setVisible(false);
+            binaryView.showWindow();
+
+        } catch (Exception e) {
+            System.err.println("Error al abrir la búsqueda binaria externa: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
      * Open Hash Algorithm view with its controller
      */
     private void openHashAlgorithmView() {
+        try {
+            // Create the external hash algorithm view
+            ExternalHashAlgorithmView hashView = new ExternalHashAlgorithmView();
+
+            // Create the controller and link it with the view
+            ExternalHashAlgorithmController hashController =
+                    new ExternalHashAlgorithmController(hashView);
+
+            // Set the reference to this menu for back navigation
+            hashController.setExternalSearchMenuView(this.externalSearchMenuView);
+
+            // Hide current menu and show the hash algorithm view
+            this.externalSearchMenuView.setVisible(false);
+            hashView.showWindow();
+
+        } catch (Exception e) {
+            System.err.println("Error al abrir las funciones hash externas: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**

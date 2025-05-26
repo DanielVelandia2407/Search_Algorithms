@@ -7,29 +7,35 @@ import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
-public class FoldingSearchView extends JFrame {
+public class ExternalSequentialSearchView extends JFrame {
 
     private JButton btnSearch;
-    private JButton btnGenerateArray;
+    private JButton btnGenerateBlocks;
     private JButton btnDeleteValue;
     private JButton btnInsertValue;
     private JButton btnBack;
-    private JTable dataTable;
+    private JTable blocksTable;
     private DefaultTableModel tableModel;
     private JTextField txtValueToSearch;
-    private JTextField txtArraySize;
+    private JTextField txtBlockCount;
+    private JTextField txtBlockSize;
     private JTextField txtInsertValue;
     private JTextField txtValueToDelete;
     private JTextField txtDigitLimit;
     private JCheckBox chkVisualizeProcess;
     private JLabel lblResult;
-    private int currentSearchIndex = -1;
-    private int foundIndex = -1;
+    private JLabel lblBlockAccessCount;
+    private JLabel lblCurrentBlock;
+    private int currentSearchBlockIndex = -1;
+    private int currentSearchRecordIndex = -1;
+    private int foundBlockIndex = -1;
+    private int foundRecordIndex = -1;
+    private int blockAccessCount = 0;
 
-    public FoldingSearchView() {
+    public ExternalSequentialSearchView() {
         // Basic window configuration
-        setTitle("Función Plegamiento");
-        setSize(600, 1000);  // Incrementado altura para acomodar el nuevo campo
+        setTitle("Búsqueda Secuencial Externa");
+        setSize(900, 1100);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
@@ -43,12 +49,12 @@ public class FoldingSearchView extends JFrame {
         titlePanel.setBackground(new Color(70, 130, 180)); // Steel Blue
         titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblTitle = new JLabel("Algoritmo de Función Plegamiento");
+        JLabel lblTitle = new JLabel("Algoritmo de Búsqueda Secuencial Externa");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lblSubtitle = new JLabel("Visualización y prueba del algoritmo");
+        JLabel lblSubtitle = new JLabel("Simulación con manejo de bloques de disco");
         lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         lblSubtitle.setForeground(new Color(240, 248, 255));
         lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -64,62 +70,108 @@ public class FoldingSearchView extends JFrame {
         centerPanel.setBackground(new Color(240, 248, 255));
         centerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
+        // Status panel for block access information
+        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        statusPanel.setBackground(new Color(240, 248, 255));
+        statusPanel.setBorder(BorderFactory.createTitledBorder("Estado de la Búsqueda"));
+
+        lblBlockAccessCount = new JLabel("Accesos a bloques: 0");
+        lblBlockAccessCount.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblBlockAccessCount.setForeground(new Color(41, 128, 185));
+
+        lblCurrentBlock = new JLabel("Bloque actual: Ninguno");
+        lblCurrentBlock.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblCurrentBlock.setForeground(new Color(231, 76, 60));
+
+        statusPanel.add(lblBlockAccessCount);
+        statusPanel.add(Box.createHorizontalStrut(30));
+        statusPanel.add(lblCurrentBlock);
+
+        centerPanel.add(statusPanel, BorderLayout.NORTH);
+
         // Table panel
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBackground(new Color(240, 248, 255));
 
-        // Create table model with two columns: position and value
-        tableModel = new DefaultTableModel(new Object[]{"Posición", "Clave"}, 0) {
+        // Create table model with columns for blocks
+        String[] columnNames = {"Bloque", "Reg 1", "Reg 2", "Reg 3", "Reg 4", "Reg 5"};
+        tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Make table non-editable
             }
         };
 
-        dataTable = new JTable(tableModel);
-        dataTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        dataTable.setRowHeight(25);
-        dataTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
-        dataTable.getTableHeader().setBackground(new Color(41, 128, 185));
-        dataTable.getTableHeader().setForeground(Color.WHITE);
+        blocksTable = new JTable(tableModel);
+        blocksTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        blocksTable.setRowHeight(30);
+        blocksTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        blocksTable.getTableHeader().setBackground(new Color(41, 128, 185));
+        blocksTable.getTableHeader().setForeground(Color.WHITE);
 
-        // Custom cell renderer for highlighting
-        dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+        // Custom cell renderer for highlighting blocks and records
+        blocksTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                                                            boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value,
                         isSelected, hasFocus, row, column);
 
-                if (row == foundIndex && foundIndex != -1) {
-                    // Verde claro para encontrado (prioridad más alta)
-                    c.setBackground(new Color(150, 255, 150));
-                    c.setForeground(Color.BLACK);
-                } else if (row == currentSearchIndex && currentSearchIndex != -1) {
-                    // Amarillo claro para posición actual siendo evaluada durante la búsqueda
-                    c.setBackground(new Color(255, 255, 150));
-                    c.setForeground(Color.BLACK);
-                } else {
+                // Highlight current search block
+                if (row == currentSearchBlockIndex && currentSearchBlockIndex != -1) {
+                    if (column == 0) {
+                        c.setBackground(new Color(255, 193, 7)); // Amarillo para bloque siendo accedido
+                        c.setForeground(Color.BLACK);
+                    } else if (column == currentSearchRecordIndex + 1 && currentSearchRecordIndex != -1) {
+                        c.setBackground(new Color(255, 255, 150)); // Amarillo claro para registro actual
+                        c.setForeground(Color.BLACK);
+                    } else {
+                        c.setBackground(new Color(255, 235, 205)); // Amarillo muy claro para el resto del bloque
+                        c.setForeground(Color.BLACK);
+                    }
+                }
+                // Highlight found item
+                else if (row == foundBlockIndex && foundBlockIndex != -1) {
+                    if (column == 0) {
+                        c.setBackground(new Color(40, 167, 69)); // Verde para bloque encontrado
+                        c.setForeground(Color.WHITE);
+                    } else if (column == foundRecordIndex + 1 && foundRecordIndex != -1) {
+                        c.setBackground(new Color(150, 255, 150)); // Verde claro para registro encontrado
+                        c.setForeground(Color.BLACK);
+                    } else {
+                        c.setBackground(new Color(200, 255, 200)); // Verde muy claro para el resto del bloque
+                        c.setForeground(Color.BLACK);
+                    }
+                }
+                else {
                     c.setBackground(Color.WHITE);
                     c.setForeground(Color.BLACK);
+
+                    // Color de fondo para bloques alternos
+                    if (row % 2 == 1) {
+                        c.setBackground(new Color(248, 249, 250));
+                    }
                 }
+
+                // Centrar el texto
+                setHorizontalAlignment(SwingConstants.CENTER);
 
                 return c;
             }
         });
 
-        JScrollPane scrollPane = new JScrollPane(dataTable);
+        JScrollPane scrollPane = new JScrollPane(blocksTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(41, 128, 185), 1));
+        scrollPane.setPreferredSize(new Dimension(800, 300));
 
         tablePanel.add(scrollPane, BorderLayout.CENTER);
         centerPanel.add(tablePanel, BorderLayout.CENTER);
 
-        // Control panel (at the bottom) - Reorganizado con mejor espaciado
+        // Control panel
         JPanel controlPanel = new JPanel(new BorderLayout(10, 10));
         controlPanel.setBackground(new Color(240, 248, 255));
         controlPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        // Panel contenedor que organiza verticalmente los subpaneles
         JPanel verticalControlPanel = new JPanel();
         verticalControlPanel.setLayout(new BoxLayout(verticalControlPanel, BoxLayout.Y_AXIS));
         verticalControlPanel.setBackground(new Color(240, 248, 255));
@@ -129,9 +181,9 @@ public class FoldingSearchView extends JFrame {
         JLabel lblDigitLimit = new JLabel("Límite de dígitos:");
         lblDigitLimit.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        txtDigitLimit = new JTextField(10);
+        txtDigitLimit = new JTextField(5);
         txtDigitLimit.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtDigitLimit.setText("2"); // Valor por defecto
+        txtDigitLimit.setText("2");
 
         digitLimitPanel.add(lblDigitLimit);
         digitLimitPanel.add(txtDigitLimit);
@@ -139,27 +191,38 @@ public class FoldingSearchView extends JFrame {
         verticalControlPanel.add(digitLimitPanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Panel para generar arreglo
-        JPanel generatePanel = createControlPanel();
-        JLabel lblArraySize = new JLabel("Tamaño de la tabla:");
-        lblArraySize.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        // Panel para configurar bloques
+        JPanel blockConfigPanel = createControlPanel();
+        JLabel lblBlockCount = new JLabel("Número de bloques:");
+        lblBlockCount.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        txtArraySize = new JTextField(10);
-        txtArraySize.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtBlockCount = new JTextField(5);
+        txtBlockCount.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtBlockCount.setText("5");
 
-        btnGenerateArray = createStyledButton("Generar Tabla", new Color(46, 204, 113));
+        JLabel lblBlockSize = new JLabel("Registros por bloque:");
+        lblBlockSize.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        generatePanel.add(lblArraySize);
-        generatePanel.add(txtArraySize);
-        generatePanel.add(Box.createHorizontalStrut(10));
-        generatePanel.add(btnGenerateArray);
+        txtBlockSize = new JTextField(5);
+        txtBlockSize.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtBlockSize.setText("5");
 
-        verticalControlPanel.add(generatePanel);
+        btnGenerateBlocks = createStyledButton("Generar Bloques", new Color(46, 204, 113));
+
+        blockConfigPanel.add(lblBlockCount);
+        blockConfigPanel.add(txtBlockCount);
+        blockConfigPanel.add(Box.createHorizontalStrut(10));
+        blockConfigPanel.add(lblBlockSize);
+        blockConfigPanel.add(txtBlockSize);
+        blockConfigPanel.add(Box.createHorizontalStrut(10));
+        blockConfigPanel.add(btnGenerateBlocks);
+
+        verticalControlPanel.add(blockConfigPanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         // Panel para insertar valores
         JPanel insertPanel = createControlPanel();
-        JLabel lblInsert = new JLabel("Insertar una clave:");
+        JLabel lblInsert = new JLabel("Insertar clave:");
         lblInsert.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtInsertValue = new JTextField(10);
@@ -198,7 +261,7 @@ public class FoldingSearchView extends JFrame {
         chkVisualizeProcess = new JCheckBox("Visualizar proceso de búsqueda");
         chkVisualizeProcess.setFont(new Font("Segoe UI", Font.BOLD, 14));
         chkVisualizeProcess.setBackground(new Color(240, 248, 255));
-        chkVisualizeProcess.setSelected(true); // Por defecto activado
+        chkVisualizeProcess.setSelected(true);
         chkVisualizeProcess.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         visualizationPanel.add(chkVisualizeProcess);
@@ -208,7 +271,7 @@ public class FoldingSearchView extends JFrame {
 
         // Panel para eliminar valores
         JPanel deletePanel = createControlPanel();
-        JLabel lblDelete = new JLabel("Eliminar una clave:");
+        JLabel lblDelete = new JLabel("Eliminar clave:");
         lblDelete.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         txtValueToDelete = new JTextField(10);
@@ -224,7 +287,7 @@ public class FoldingSearchView extends JFrame {
         verticalControlPanel.add(deletePanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Result label - INICIALIZACIÓN CORRECTA
+        // Result label
         lblResult = new JLabel("");
         lblResult.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblResult.setHorizontalAlignment(SwingConstants.CENTER);
@@ -256,7 +319,7 @@ public class FoldingSearchView extends JFrame {
         bottomPanel.setBackground(new Color(220, 220, 220));
         bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0");
+        JLabel lblInfo = new JLabel("© 2025 - External Search Algorithms v1.0");
         lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblInfo.setForeground(new Color(100, 100, 100));
 
@@ -265,28 +328,26 @@ public class FoldingSearchView extends JFrame {
     }
 
     private JPanel createControlPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         panel.setBackground(new Color(240, 248, 255));
         return panel;
     }
 
-    // Method to create a styled button
     private JButton createStyledButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setBackground(backgroundColor);
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(150, 35));
-
+        button.setPreferredSize(new Dimension(130, 35));
         return button;
     }
 
-    // Methods to assign external actions to buttons
-    public void addGenerateArrayListener(ActionListener listener) {
-        btnGenerateArray.addActionListener(listener);
+    // Listener methods
+    public void addGenerateBlocksListener(ActionListener listener) {
+        btnGenerateBlocks.addActionListener(listener);
     }
 
     public void addInsertValueListener(ActionListener listener) {
@@ -305,145 +366,90 @@ public class FoldingSearchView extends JFrame {
         btnBack.addActionListener(listener);
     }
 
-    // Method to get search value
+    // Getter methods
     public String getSearchValue() {
         return txtValueToSearch.getText().trim();
     }
 
-    // Method to get array size value
-    public String getArraySize() {
-        return txtArraySize.getText().trim();
+    public String getBlockCount() {
+        return txtBlockCount.getText().trim();
     }
 
-    // Method to get insert value
+    public String getBlockSize() {
+        return txtBlockSize.getText().trim();
+    }
+
     public String getInsertValue() {
         return txtInsertValue.getText().trim();
     }
 
-    // Method to get delete value
     public String getDeleteValue() {
         return txtValueToDelete.getText().trim();
     }
 
-    // Method to get digit limit
     public String getDigitLimit() {
         return txtDigitLimit.getText().trim();
     }
 
-    // Method to display search result - MÉTODO CORREGIDO
-    public void setResultMessage(String message, boolean isSuccess) {
-        if (lblResult != null) {
-            lblResult.setText(message);
-            lblResult.setForeground(isSuccess ? new Color(46, 125, 50) : new Color(198, 40, 40));
-        }
-    }
-
-    // Method to populate the table with values and dynamic headers
-    public void setTableData(Object[][] data, String[] headers) {
-        System.out.println("Vista: Recibiendo datos - " + data.length + " filas, " + headers.length + " columnas");
-
-        // Recrear el modelo de tabla con nuevos headers
-        tableModel = new DefaultTableModel(headers, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Make table non-editable
-            }
-        };
-
-        dataTable.setModel(tableModel);
-
-        // Agregar los datos FILA POR FILA
-        for (int i = 0; i < data.length; i++) {
-            tableModel.addRow(data[i]);
-            System.out.println("Agregando fila " + (i+1) + ": " + java.util.Arrays.toString(data[i]));
-        }
-
-        System.out.println("Vista: Tabla actualizada con " + tableModel.getRowCount() + " filas");
-
-        // Aplicar el renderer personalizado DESPUÉS de agregar los datos
-        dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value,
-                        isSelected, hasFocus, row, column);
-
-                if (row == foundIndex && foundIndex != -1) {
-                    // Verde claro para encontrado (prioridad más alta)
-                    c.setBackground(new Color(150, 255, 150));
-                    c.setForeground(Color.BLACK);
-                } else if (row == currentSearchIndex && currentSearchIndex != -1) {
-                    // Amarillo claro para posición actual siendo evaluada durante la búsqueda
-                    c.setBackground(new Color(255, 255, 150));
-                    c.setForeground(Color.BLACK);
-                } else {
-                    c.setBackground(Color.WHITE);
-                    c.setForeground(Color.BLACK);
-                }
-
-                return c;
-            }
-        });
-
-        // Configurar estilos del header
-        dataTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
-        dataTable.getTableHeader().setBackground(new Color(41, 128, 185));
-        dataTable.getTableHeader().setForeground(Color.WHITE);
-
-        // Forzar actualización de la vista
-        dataTable.revalidate();
-        dataTable.repaint();
-    }
-
-    // Method to populate the table with values (para compatibilidad con código anterior)
-    public void setTableData(Object[][] data) {
-        String[] defaultHeaders = {"Posición", "Clave"};
-        setTableData(data, defaultHeaders);
-    }
-
-    // Method to highlight a specific row in the table (para compatibilidad)
-    public void highlightRow(int rowIndex) {
-        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
-            dataTable.setRowSelectionInterval(rowIndex, rowIndex);
-            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
-        }
-    }
-
-    // Method to highlight search progress
-    public void highlightSearchProgress(int rowIndex) {
-        currentSearchIndex = rowIndex;
-        foundIndex = -1;
-        dataTable.repaint();
-
-        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
-            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
-        }
-    }
-
-    // Method to highlight found item
-    public void highlightFoundItem(int rowIndex) {
-        currentSearchIndex = -1;
-        foundIndex = rowIndex;
-        dataTable.repaint();
-
-        if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
-            dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
-        }
-    }
-
-    // Method to clear highlights
-    public void clearHighlights() {
-        currentSearchIndex = -1;
-        foundIndex = -1;
-        dataTable.repaint();
-    }
-
-    // Method to check if visualization is enabled
     public boolean isVisualizationEnabled() {
         return chkVisualizeProcess.isSelected();
     }
 
-    // Method to show the window
+    // Display methods
+    public void setResultMessage(String message, boolean isSuccess) {
+        lblResult.setText(message);
+        lblResult.setForeground(isSuccess ? new Color(46, 125, 50) : new Color(198, 40, 40));
+    }
+
+    public void setBlockAccessCount(int count) {
+        blockAccessCount = count;
+        lblBlockAccessCount.setText("Accesos a bloques: " + count);
+    }
+
+    public void setCurrentBlock(String blockInfo) {
+        lblCurrentBlock.setText("Bloque actual: " + blockInfo);
+    }
+
+    public void setTableData(Object[][] data) {
+        tableModel.setRowCount(0);
+        for (Object[] row : data) {
+            tableModel.addRow(row);
+        }
+    }
+
+    // Highlighting methods for external search visualization
+    public void highlightBlockAccess(int blockIndex, int recordIndex) {
+        currentSearchBlockIndex = blockIndex;
+        currentSearchRecordIndex = recordIndex;
+        foundBlockIndex = -1;
+        foundRecordIndex = -1;
+        blocksTable.repaint();
+
+        if (blockIndex >= 0 && blockIndex < blocksTable.getRowCount()) {
+            blocksTable.scrollRectToVisible(blocksTable.getCellRect(blockIndex, 0, true));
+        }
+    }
+
+    public void highlightFoundItem(int blockIndex, int recordIndex) {
+        currentSearchBlockIndex = -1;
+        currentSearchRecordIndex = -1;
+        foundBlockIndex = blockIndex;
+        foundRecordIndex = recordIndex;
+        blocksTable.repaint();
+
+        if (blockIndex >= 0 && blockIndex < blocksTable.getRowCount()) {
+            blocksTable.scrollRectToVisible(blocksTable.getCellRect(blockIndex, 0, true));
+        }
+    }
+
+    public void clearHighlights() {
+        currentSearchBlockIndex = -1;
+        currentSearchRecordIndex = -1;
+        foundBlockIndex = -1;
+        foundRecordIndex = -1;
+        blocksTable.repaint();
+    }
+
     public void showWindow() {
         setVisible(true);
     }

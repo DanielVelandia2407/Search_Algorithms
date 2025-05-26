@@ -1,0 +1,13 @@
+[-1, -1, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+[25, 2525, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+[-1, -1, -1, -1, -1]
+# Formato: cada línea representa un bloque de la tabla hash externa
+# [valor1, valor2, valor3, valor4, valor5] para cada bloque
+# [-1] para slots vacíos en el bloque
