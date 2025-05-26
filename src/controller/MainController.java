@@ -2,6 +2,7 @@ package controller;
 
 import view.MainView;
 import view.AlgorithmMenuView;
+import view.ExternalSearchMenuView;
 import view.IndicesMenuView;
 import view.SearchMenuView;
 import view.TreeView;
@@ -9,8 +10,9 @@ import view.TreeView;
 public class MainController {
     private MainView mainView;
     private AlgorithmMenuController algorithmMenuController;
+    private ExternalSearchMenuController externalSearchMenuController; // NUEVO
     private IndicesMenuController indicesMenuController;
-    private SearchMenuController searchMenuController; // NUEVO
+    private SearchMenuController searchMenuController;
     private TreeView treeView;
 
     public MainController(MainView mainView) {
@@ -28,12 +30,17 @@ public class MainController {
         this.algorithmMenuController = new AlgorithmMenuController(algorithmMenuView);
         this.algorithmMenuController.setMainView(mainView);
 
+        // Create External Search Menu Controller (NUEVO)
+        ExternalSearchMenuView externalSearchMenuView = new ExternalSearchMenuView();
+        this.externalSearchMenuController = new ExternalSearchMenuController(externalSearchMenuView);
+        this.externalSearchMenuController.setMainView(mainView);
+
         // Create Indices Menu Controller
         IndicesMenuView indicesMenuView = new IndicesMenuView();
         this.indicesMenuController = new IndicesMenuController(indicesMenuView);
         this.indicesMenuController.setMainView(mainView);
 
-        // Create Search Menu Controller (NUEVO)
+        // Create Search Menu Controller
         SearchMenuView searchMenuView = new SearchMenuView();
         this.searchMenuController = new SearchMenuController(searchMenuView);
         this.searchMenuController.setMainView(mainView);
@@ -46,17 +53,17 @@ public class MainController {
         // MainView -> AlgorithmMenuView (Internal Search)
         this.mainView.addInternalSearchListener(e -> openAlgorithmMenu());
 
+        // MainView -> ExternalSearchMenuView (External Search) - NUEVO
+        this.mainView.addExternalSearchListener(e -> openExternalSearchMenu());
+
         // MainView -> TreeView
         this.mainView.addTreeSearchListener(e -> openTreeView());
 
         // MainView -> IndicesMenuView
         this.mainView.addIndicesListener(e -> openIndicesMenu());
 
-        // MainView -> SearchMenuView (Dynamic Search) - MODIFICADO
+        // MainView -> SearchMenuView (Dynamic Search)
         this.mainView.addDynamicSearchListener(e -> openSearchMenu());
-
-        // TODO: Add listeners for other menu options when implemented
-        // this.mainView.addExternalSearchListener(e -> openExternalSearchMenu());
     }
 
     /**
@@ -68,6 +75,14 @@ public class MainController {
     }
 
     /**
+     * Open the external search menu (NUEVO MÉTODO)
+     */
+    private void openExternalSearchMenu() {
+        mainView.setVisible(false);
+        externalSearchMenuController.getView().setVisible(true);
+    }
+
+    /**
      * Open the indices menu
      */
     private void openIndicesMenu() {
@@ -76,7 +91,7 @@ public class MainController {
     }
 
     /**
-     * Open the search menu (NEW METHOD)
+     * Open the search menu
      */
     private void openSearchMenu() {
         mainView.setVisible(false);
@@ -116,6 +131,13 @@ public class MainController {
     }
 
     /**
+     * Get the external search menu controller (NUEVO GETTER)
+     */
+    public ExternalSearchMenuController getExternalSearchMenuController() {
+        return externalSearchMenuController;
+    }
+
+    /**
      * Get the indices menu controller
      */
     public IndicesMenuController getIndicesMenuController() {
@@ -123,7 +145,7 @@ public class MainController {
     }
 
     /**
-     * Get the search menu controller (NEW GETTER)
+     * Get the search menu controller
      */
     public SearchMenuController getSearchMenuController() {
         return searchMenuController;
