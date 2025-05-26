@@ -3,6 +3,9 @@ package controller;
 import view.IndicesMenuView;
 import view.MainView;
 import view.ImprovedMultilevelIndexView;
+import view.MultilevelPrimaryIndexView;
+import view.SecondaryIndexView;
+import view.PrimaryIndexView;  // Nueva importación
 import view.ConfigurationDialog;
 
 import javax.swing.JOptionPane;
@@ -30,13 +33,13 @@ public class IndicesMenuController {
         // Back button - returns to main menu
         this.indicesMenuView.addBackListener(e -> goBackToMainMenu());
 
-        // Primary Index button
+        // Primary Index button - IMPLEMENTADO
         this.indicesMenuView.addPrimaryIndexListener(e -> openPrimaryIndex());
 
-        // Secondary Index button
+        // Secondary Index button - IMPLEMENTADO
         this.indicesMenuView.addSecondaryIndexListener(e -> openSecondaryIndex());
 
-        // Multilevel Primary button
+        // Multilevel Primary button - IMPLEMENTADO
         this.indicesMenuView.addMultilevelPrimaryListener(e -> openMultilevelPrimary());
 
         // Multilevel Secondary button - MEJORADO
@@ -55,68 +58,95 @@ public class IndicesMenuController {
 
     /**
      * Open Primary Index view with its controller
+     * IMPLEMENTACIÓN COMPLETA - Conecta con la nueva funcionalidad de índice primario
      */
     private void openPrimaryIndex() {
         indicesMenuView.setVisible(false);
 
-        // TODO: Uncomment when PrimaryIndexView is created
-        /*
-        PrimaryIndexView primaryIndexView = new PrimaryIndexView();
-        PrimaryIndexController controller = new PrimaryIndexController(primaryIndexView);
-        controller.setIndicesMenuView(indicesMenuView);
-        primaryIndexView.showWindow();
-        */
+        try {
+            // Crear vista y controlador del índice primario directamente
+            PrimaryIndexView primaryIndexView = new PrimaryIndexView();
+            PrimaryIndexController controller = new PrimaryIndexController(primaryIndexView);
 
-        // Temporary message - remove when implementing the actual view
-        JOptionPane.showMessageDialog(indicesMenuView,
-                "Funcionalidad de Índice Principal en desarrollo",
-                "En construcción",
-                JOptionPane.INFORMATION_MESSAGE);
-        indicesMenuView.setVisible(true);
+            // Configurar navegación de regreso al menú de índices
+            controller.setIndicesMenuView(indicesMenuView);
+
+            // Mostrar la ventana del índice primario
+            primaryIndexView.showWindow();
+
+        } catch (Exception ex) {
+            // Manejar cualquier error durante la inicialización
+            JOptionPane.showMessageDialog(indicesMenuView,
+                    "Error al inicializar el Simulador de Índice Primario:\n" +
+                            ex.getMessage(),
+                    "Error de Inicialización",
+                    JOptionPane.ERROR_MESSAGE);
+            indicesMenuView.setVisible(true);
+            ex.printStackTrace();
+        }
     }
 
     /**
      * Open Secondary Index view with its controller
+     * IMPLEMENTACIÓN COMPLETA - Conecta con la funcionalidad desarrollada
      */
     private void openSecondaryIndex() {
         indicesMenuView.setVisible(false);
 
-        // TODO: Uncomment when SecondaryIndexView is created
-        /*
-        SecondaryIndexView secondaryIndexView = new SecondaryIndexView();
-        SecondaryIndexController controller = new SecondaryIndexController(secondaryIndexView);
-        controller.setIndicesMenuView(indicesMenuView);
-        secondaryIndexView.showWindow();
-        */
+        try {
+            // Crear vista y controlador del índice secundario
+            SecondaryIndexView secondaryIndexView = new SecondaryIndexView();
+            SecondaryIndexController controller = new SecondaryIndexController(secondaryIndexView);
 
-        // Temporary message - remove when implementing the actual view
-        JOptionPane.showMessageDialog(indicesMenuView,
-                "Funcionalidad de Índice Secundario en desarrollo",
-                "En construcción",
-                JOptionPane.INFORMATION_MESSAGE);
-        indicesMenuView.setVisible(true);
+            // Configurar navegación de regreso al menú de índices
+            controller.setIndicesMenuView(indicesMenuView);
+
+            // Mostrar la ventana del índice secundario
+            secondaryIndexView.showWindow();
+
+        } catch (Exception ex) {
+            // Manejar cualquier error durante la inicialización
+            JOptionPane.showMessageDialog(indicesMenuView,
+                    "Error al inicializar el Simulador de Índice Secundario:\n" +
+                            ex.getMessage(),
+                    "Error de Inicialización",
+                    JOptionPane.ERROR_MESSAGE);
+            indicesMenuView.setVisible(true);
+            ex.printStackTrace();
+        }
     }
 
     /**
      * Open Multilevel Primary view with its controller
+     * IMPLEMENTACIÓN COMPLETA - Conecta con la nueva funcionalidad de índices multinivel primarios
      */
     private void openMultilevelPrimary() {
         indicesMenuView.setVisible(false);
 
-        // TODO: Uncomment when MultilevelPrimaryView is created
-        /*
-        MultilevelPrimaryView multilevelPrimaryView = new MultilevelPrimaryView();
-        MultilevelPrimaryController controller = new MultilevelPrimaryController(multilevelPrimaryView);
-        controller.setIndicesMenuView(indicesMenuView);
-        multilevelPrimaryView.showWindow();
-        */
+        try {
+            // Crear vista y controlador mejorados para índices multinivel primarios directamente
+            MultilevelPrimaryIndexView multilevelPrimaryView = new MultilevelPrimaryIndexView();
+            MultilevelPrimaryIndexController controller = new MultilevelPrimaryIndexController(multilevelPrimaryView);
 
-        // Temporary message - remove when implementing the actual view
-        JOptionPane.showMessageDialog(indicesMenuView,
-                "Funcionalidad de Multinivel con Principal en desarrollo",
-                "En construcción",
-                JOptionPane.INFORMATION_MESSAGE);
-        indicesMenuView.setVisible(true);
+            // Configurar navegación de regreso al menú de índices
+            controller.setIndicesMenuView(indicesMenuView);
+
+            // Configurar el botón de detalles de niveles
+            multilevelPrimaryView.addShowLevelDetailsListener(e -> showPrimaryLevelDetailsDialog(controller));
+
+            // Mostrar la ventana
+            multilevelPrimaryView.showWindow();
+
+        } catch (Exception ex) {
+            // Manejar cualquier error durante la inicialización
+            JOptionPane.showMessageDialog(indicesMenuView,
+                    "Error al inicializar el sistema de Índices Multinivel Primarios:\n" +
+                            ex.getMessage(),
+                    "Error de Inicialización",
+                    JOptionPane.ERROR_MESSAGE);
+            indicesMenuView.setVisible(true);
+            ex.printStackTrace();
+        }
     }
 
     /**
@@ -127,6 +157,9 @@ public class IndicesMenuController {
         indicesMenuView.setVisible(false);
 
         try {
+            // Mostrar información previa sobre índices multinivel secundarios
+            showSecondaryMultilevelInfo();
+
             // Crear vista y controlador mejorados
             ImprovedMultilevelIndexView multilevelView = new ImprovedMultilevelIndexView();
             ImprovedMultilevelIndexController controller = new ImprovedMultilevelIndexController(multilevelView);
@@ -140,7 +173,7 @@ public class IndicesMenuController {
         } catch (Exception ex) {
             // Manejar cualquier error durante la inicialización
             JOptionPane.showMessageDialog(indicesMenuView,
-                    "Error al inicializar el sistema de Índices Multinivel:\n" +
+                    "Error al inicializar el sistema de Índices Multinivel Secundarios:\n" +
                             ex.getMessage(),
                     "Error de Inicialización",
                     JOptionPane.ERROR_MESSAGE);
@@ -150,108 +183,91 @@ public class IndicesMenuController {
     }
 
     /**
-     * Muestra información sobre los niveles que se calcularán
+     * Muestra información sobre los índices multinivel secundarios
      */
-    private void showCalculatedLevelsInfo(ConfigurationDialog.ConfigurationData config) {
-        try {
-            int dataPerBlock = config.getBlockSizeBytes() / config.getDataRecordSizeBytes();
-            int indexPerBlock = config.getBlockSizeBytes() / config.getIndexRecordSizeBytes();
-            int levels = ImprovedMultilevelIndexController.MultilevelCalculator.calculateRequiredLevels(
-                    config.getRecordCount(), dataPerBlock, indexPerBlock);
+    private void showSecondaryMultilevelInfo() {
+        String info = """
+                🔍 ÍNDICES MULTINIVEL SECUNDARIOS 🔍
+                
+                CARACTERÍSTICAS PRINCIPALES:
+                ✅ Organización independiente de los datos principales
+                ✅ Flexibilidad en campos de indexación
+                ✅ Múltiples índices sobre el mismo conjunto de datos
+                ✅ Búsqueda eficiente sin alterar orden físico
+                
+                VENTAJAS:
+                • Búsquedas por cualquier campo indexado
+                • No requiere reorganización física de datos
+                • Soporte para múltiples criterios de búsqueda
+                • Flexibilidad en la estructura de acceso
+                
+                APLICACIONES:
+                • Consultas por campos no clave
+                • Sistemas con múltiples patrones de acceso
+                • Bases de datos con consultas diversas
+                
+                El sistema generará automáticamente la estructura
+                multinivel óptima según la configuración.
+                """;
 
-            String levelInfo = String.format(
-                    "📊 CONFIGURACIÓN SELECCIONADA 📊\n\n" +
-                            "Registros: %,d\n" +
-                            "Tamaño de bloque: %,d bytes\n" +
-                            "Tamaño registro datos: %d bytes\n" +
-                            "Tamaño registro índice: %d bytes\n\n" +
-                            "📈 ESTRUCTURA CALCULADA 📈\n\n" +
-                            "Registros por bloque (datos): %d\n" +
-                            "Registros por bloque (índice): %d\n" +
-                            "Niveles de índice necesarios: %d\n" +
-                            "Niveles totales (con datos): %d\n\n" +
-                            "🚀 RENDIMIENTO ESTIMADO 🚀\n\n" +
-                            "Accesos máximos por búsqueda: %d\n" +
-                            "Mejora vs búsqueda secuencial: %.1fx más rápido\n\n" +
-                            "¡El sistema generará automáticamente la estructura óptima!",
-                    config.getRecordCount(),
-                    config.getBlockSizeBytes(),
-                    config.getDataRecordSizeBytes(),
-                    config.getIndexRecordSizeBytes(),
-                    dataPerBlock,
-                    indexPerBlock,
-                    levels - 1,
-                    levels,
-                    levels,
-                    (double) config.getRecordCount() / 2 / levels
-            );
-
-            JOptionPane.showMessageDialog(indicesMenuView, levelInfo,
-                    "Estructura de Índices Multinivel", JOptionPane.INFORMATION_MESSAGE);
-
-        } catch (Exception e) {
-            // Si hay error en el cálculo, continuar sin mostrar info
-            System.err.println("Error calculando información de niveles: " + e.getMessage());
-        }
+        JOptionPane.showMessageDialog(indicesMenuView, info,
+                "Información: Índices Multinivel Secundarios", JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
-     * Actualiza la información inicial en la vista
+     * Muestra el diálogo de detalles de niveles para índices primarios
      */
-    private void updateInitialViewInfo(ImprovedMultilevelIndexView view,
-                                       ImprovedMultilevelIndexController controller) {
+    private void showPrimaryLevelDetailsDialog(MultilevelPrimaryIndexController controller) {
         try {
-            // Información básica del sistema
-            String levelInfo = "Sistema de Índices Multinivel Dinámicos iniciado correctamente. " +
-                    "Use 'Ver Detalles Niveles' para análisis completo de la estructura.";
-            view.setLevelInfo(levelInfo);
+            StringBuilder details = new StringBuilder();
+
+            details.append("=== ANÁLISIS DETALLADO - ÍNDICES MULTINIVEL PRIMARIOS ===\n\n");
+
+            details.append("CARACTERÍSTICAS DEL ÍNDICE PRIMARIO:\n");
+            details.append("• Organización: Secuencial por clave principal\n");
+            details.append("• Acceso: Directo mediante estructura multinivel\n");
+            details.append("• Ordenamiento: Físico de los datos por campo clave\n");
+            details.append("• Eficiencia: O(log n) para búsquedas\n\n");
+
+            details.append("ESTRUCTURA DE NIVELES:\n");
+            details.append("• Nivel 0 (Datos): Registros ordenados físicamente\n");
+            details.append("• Nivel 1 (Índice Primario): Apunta a bloques de datos\n");
+            details.append("• Niveles Superiores: Índices sobre índices\n");
+            details.append("• Nivel Raíz: Entrada única al sistema\n\n");
+
+            details.append("VENTAJAS TÉCNICAS:\n");
+            details.append("✓ Acceso secuencial eficiente\n");
+            details.append("✓ Búsquedas por rango optimizadas\n");
+            details.append("✓ Localidad de referencia mejorada\n");
+            details.append("✓ Menor fragmentación de datos\n\n");
+
+            details.append("CONSIDERACIONES:\n");
+            details.append("• Mantenimiento del orden en inserciones\n");
+            details.append("• Reorganización en eliminaciones masivas\n");
+            details.append("• Eficiencia máxima en consultas por clave\n");
+            details.append("• Ideal para patrones de acceso secuencial\n\n");
+
+            details.append("MÉTRICAS DE RENDIMIENTO:\n");
+            details.append("• Comparaciones por búsqueda: log₂(n)\n");
+            details.append("• Accesos a disco: Altura del árbol\n");
+            details.append("• Espacio adicional: ~15% para índices\n");
+            details.append("• Eficiencia de almacenamiento: Alta\n\n");
+
+            details.append("Para análisis específico de su configuración,\n");
+            details.append("utilice las herramientas de configuración técnica.");
+
+            // Mostrar el diálogo usando el método de la vista
+            MultilevelPrimaryIndexView view = (MultilevelPrimaryIndexView) controller.getClass()
+                    .getDeclaredField("view").get(controller);
+            view.showLevelDetailsDialog(details.toString());
 
         } catch (Exception e) {
-            System.err.println("Error actualizando información inicial: " + e.getMessage());
+            // Fallback si hay error accediendo a la vista
+            JOptionPane.showMessageDialog(indicesMenuView,
+                    "Detalles técnicos de índices multinivel primarios disponibles " +
+                            "en la interfaz principal mediante el botón 'Ver Detalles Niveles'.",
+                    "Información Técnica", JOptionPane.INFORMATION_MESSAGE);
         }
-    }
-
-    /**
-     * Muestra análisis detallado del sistema (integrado con la arquitectura MVC)
-     */
-    private void showDetailedSystemAnalysis(ImprovedMultilevelIndexController controller) {
-        StringBuilder analysis = new StringBuilder();
-
-        analysis.append("=== ANÁLISIS DETALLADO DEL SISTEMA ===\n\n");
-
-        analysis.append("INFORMACIÓN DEL SISTEMA:\n");
-        analysis.append("- Versión: Índices Multinivel Dinámicos v2.0\n");
-        analysis.append("- Integración: Arquitectura MVC completa\n");
-        analysis.append("- Navegación: Main → Menú Principal → Menú Índices → Multinivel\n\n");
-
-        analysis.append("MEJORAS IMPLEMENTADAS:\n");
-        analysis.append("✅ Cálculo dinámico de niveles según volumen\n");
-        analysis.append("✅ Generación automática de estructura multinivel\n");
-        analysis.append("✅ Terminología técnica estándar (Nivel 1, 2, 3...)\n");
-        analysis.append("✅ Soporte para volúmenes ilimitados de datos\n");
-        analysis.append("✅ Análisis de rendimiento en tiempo real\n");
-        analysis.append("✅ Integración perfecta con arquitectura existente\n\n");
-
-        analysis.append("CAPACIDADES TÉCNICAS:\n");
-        analysis.append("• Configuración flexible de parámetros\n");
-        analysis.append("• Visualización paso a paso de búsquedas\n");
-        analysis.append("• Inserción y eliminación de registros\n");
-        analysis.append("• Recálculo automático de estructura\n");
-        analysis.append("• Métricas detalladas de eficiencia\n\n");
-
-        analysis.append("FLUJO DE NAVEGACIÓN:\n");
-        analysis.append("1. Aplicación Principal\n");
-        analysis.append("2. ↓ Menú Principal (MainView)\n");
-        analysis.append("3. ↓ Menú de Índices (IndicesMenuView)\n");
-        analysis.append("4. ↓ Multinivel Secundario (ImprovedMultilevelIndexView)\n");
-        analysis.append("5. ← Navegación de regreso mantenida\n\n");
-
-        analysis.append("Para más detalles técnicos, use el botón\n");
-        analysis.append("'Ver Detalles Niveles' en la interfaz principal.");
-
-        // Mostrar análisis en diálogo
-        JOptionPane.showMessageDialog(indicesMenuView, analysis.toString(),
-                "Análisis del Sistema Integrado", JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
@@ -266,6 +282,56 @@ public class IndicesMenuController {
      */
     public IndicesMenuView getView() {
         return indicesMenuView;
+    }
+
+    /**
+     * Muestra análisis comparativo entre índices primarios y secundarios
+     * MÉTODO ACTUALIZADO - Incluye comparación con índice primario simple
+     */
+    private void showComparativeAnalysis() {
+        StringBuilder analysis = new StringBuilder();
+
+        analysis.append("=== ANÁLISIS COMPARATIVO: TIPOS DE ÍNDICES ===\n\n");
+
+        analysis.append("ÍNDICE PRIMARIO SIMPLE:\n");
+        analysis.append("✅ Datos físicamente ordenados\n");
+        analysis.append("✅ Una entrada por bloque de datos\n");
+        analysis.append("✅ Acceso directo muy eficiente\n");
+        analysis.append("✅ Menor overhead de almacenamiento\n");
+        analysis.append("❌ Solo para consultas por clave principal\n");
+        analysis.append("❌ Mantenimiento del orden requerido\n\n");
+
+        analysis.append("ÍNDICE SECUNDARIO:\n");
+        analysis.append("✅ Flexibilidad en campos de búsqueda\n");
+        analysis.append("✅ No altera organización física\n");
+        analysis.append("✅ Una entrada por registro\n");
+        analysis.append("✅ Múltiples índices posibles\n");
+        analysis.append("❌ Mayor overhead de almacenamiento\n");
+        analysis.append("❌ Acceso indirecto a los datos\n\n");
+
+        analysis.append("ÍNDICES MULTINIVEL PRIMARIOS:\n");
+        analysis.append("✅ Escalabilidad para grandes volúmenes\n");
+        analysis.append("✅ Acceso secuencial óptimo\n");
+        analysis.append("✅ Estructura jerárquica eficiente\n");
+        analysis.append("❌ Complejidad en mantenimiento\n\n");
+
+        analysis.append("ÍNDICES MULTINIVEL SECUNDARIOS:\n");
+        analysis.append("✅ Flexibilidad máxima en consultas\n");
+        analysis.append("✅ Escalabilidad independiente\n");
+        analysis.append("✅ Múltiples criterios de acceso\n");
+        analysis.append("❌ Mayor complejidad de gestión\n\n");
+
+        analysis.append("RECOMENDACIONES DE USO:\n");
+        analysis.append("• Primario Simple: Aplicaciones pequeñas/medianas con acceso por clave\n");
+        analysis.append("• Secundario: Consultas por campos diversos\n");
+        analysis.append("• Multinivel Primario: Grandes volúmenes con acceso secuencial\n");
+        analysis.append("• Multinivel Secundario: Sistemas complejos con múltiples patrones\n\n");
+
+        analysis.append("Todas las implementaciones incluyen simuladores\n");
+        analysis.append("y calculadoras automáticas de estructura.");
+
+        JOptionPane.showMessageDialog(indicesMenuView, analysis.toString(),
+                "Análisis Comparativo Completo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
