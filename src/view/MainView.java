@@ -8,7 +8,6 @@ import java.awt.event.ActionListener;
 public class MainView extends JFrame {
     private JButton btnInternalSearch;
     private JButton btnExternalSearch;
-    private JButton btnTreeSearch;
     private JButton btnDynamicSearch;
     private JButton btnIndices;
     private JButton btnExit;
@@ -16,7 +15,7 @@ public class MainView extends JFrame {
     public MainView() {
         // Window configuration
         setTitle("Search Algorithms");
-        setSize(700, 550);
+        setSize(700, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
@@ -71,7 +70,6 @@ public class MainView extends JFrame {
         // Create buttons with improved sizing
         btnInternalSearch = createStyledButton("Búsqueda Interna", new Color(41, 128, 185));
         btnExternalSearch = createStyledButton("Búsqueda Externa", new Color(46, 134, 193));
-        btnTreeSearch = createStyledButton("Árboles de Búsqueda", new Color(52, 152, 219));
         btnDynamicSearch = createStyledButton("Búsqueda Dinámica", new Color(155, 89, 182));
         btnIndices = createStyledButton("Índices", new Color(241, 196, 15));
         btnExit = createStyledButton("Salir", new Color(231, 76, 60));
@@ -81,25 +79,15 @@ public class MainView extends JFrame {
         gridPanel.setBackground(new Color(240, 248, 255));
         gridPanel.add(btnInternalSearch);
         gridPanel.add(btnExternalSearch);
-        gridPanel.add(btnTreeSearch);
         gridPanel.add(btnDynamicSearch);
-
-        // Indices button panel (centered)
-        JPanel indicesPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        indicesPanel.setBackground(new Color(240, 248, 255));
-        indicesPanel.setBorder(new EmptyBorder(25, 0, 15, 0));
-
-        // Ajustar el tamaño del botón índices para que sea más ancho pero no tan alto
-        btnIndices.setPreferredSize(new Dimension(280, 50));
-        btnIndices.setMinimumSize(new Dimension(280, 50));
-        indicesPanel.add(btnIndices);
+        gridPanel.add(btnIndices);
 
         // Exit button panel (centered)
         JPanel exitPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         exitPanel.setBackground(new Color(240, 248, 255));
-        exitPanel.setBorder(new EmptyBorder(10, 0, 15, 0));
+        exitPanel.setBorder(new EmptyBorder(20, 0, 20, 0));
 
-        // Botón de salir más pequeño
+        // Botón de salir
         btnExit.setPreferredSize(new Dimension(120, 40));
         btnExit.setMinimumSize(new Dimension(120, 40));
         exitPanel.add(btnExit);
@@ -108,10 +96,9 @@ public class MainView extends JFrame {
         JPanel buttonsContainer = new JPanel(new BorderLayout(0, 0));
         buttonsContainer.setBackground(new Color(240, 248, 255));
         buttonsContainer.add(gridPanel, BorderLayout.CENTER);
-        buttonsContainer.add(indicesPanel, BorderLayout.SOUTH);
+        buttonsContainer.add(exitPanel, BorderLayout.SOUTH);
 
         mainPanel.add(buttonsContainer, BorderLayout.CENTER);
-        mainPanel.add(exitPanel, BorderLayout.SOUTH);
 
         return mainPanel;
     }
@@ -181,10 +168,6 @@ public class MainView extends JFrame {
 
     public void addExternalSearchListener(ActionListener listener) {
         btnExternalSearch.addActionListener(listener);
-    }
-
-    public void addTreeSearchListener(ActionListener listener) {
-        btnTreeSearch.addActionListener(listener);
     }
 
     public void addDynamicSearchListener(ActionListener listener) {

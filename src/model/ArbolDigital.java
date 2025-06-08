@@ -12,7 +12,7 @@ import java.util.Stack;
 public class ArbolDigital extends ArbolBase {
     private NodoArbol raiz = null;
     private final int BITS = 5;
-    private int anchura = 1000; // ancho dinámico de dibujo
+    private int anchura = 1000;
 
     @Override
     public void insertar(String palabra, JTextArea area) {

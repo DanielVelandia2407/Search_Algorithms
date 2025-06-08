@@ -67,7 +67,6 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             isNewWord
         );
 
-        // Capturamos todo el log generado en el controlador para pintar en la lista
         logText = logArea.getText();
 
         view.clearInputFields();

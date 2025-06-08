@@ -10,12 +10,13 @@ public class AlgorithmMenuView extends JFrame {
     private JButton btnSequentialSearch;
     private JButton btnBinarySearch;
     private JButton btnHashSearch;
+    private JButton btnTreeSearch;
     private JButton btnBack;
 
     public AlgorithmMenuView() {
         // Basic window configuration
-        setTitle("Algoritmos de Búsqueda");
-        setSize(500, 350);
+        setTitle("Algoritmos de Búsqueda Interna");
+        setSize(550, 400);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
@@ -29,12 +30,12 @@ public class AlgorithmMenuView extends JFrame {
         titlePanel.setBackground(new Color(70, 130, 180)); // Steel Blue
         titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblTitle = new JLabel("Algoritmos de Búsqueda");
+        JLabel lblTitle = new JLabel("Búsqueda Interna");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lblSubtitle = new JLabel("Seleccione una opción para continuar");
+        JLabel lblSubtitle = new JLabel("Seleccione un algoritmo de búsqueda");
         lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         lblSubtitle.setForeground(new Color(240, 248, 255));
         lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -58,28 +59,44 @@ public class AlgorithmMenuView extends JFrame {
         // Custom styled buttons
         btnSequentialSearch = createStyledButton("Búsqueda Secuencial", new Color(41, 128, 185));
         btnBinarySearch = createStyledButton("Búsqueda Binaria", new Color(46, 134, 193));
-        btnHashSearch = createStyledButton("Funciones Hash", new Color(46, 134, 193));
-        btnBack = createStyledButton("Volver", new Color(231, 76, 60));
+        btnHashSearch = createStyledButton("Funciones Hash", new Color(52, 152, 219));
+        btnTreeSearch = createStyledButton("Árboles de Búsqueda", new Color(155, 89, 182));
 
         buttonPanel.add(btnSequentialSearch);
         buttonPanel.add(btnBinarySearch);
         buttonPanel.add(btnHashSearch);
-        buttonPanel.add(btnBack);
+        buttonPanel.add(btnTreeSearch);
 
         centerPanel.add(buttonPanel);
         add(centerPanel, BorderLayout.CENTER);
 
-        // Bottom panel with information
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setBackground(new Color(220, 220, 220));
-        bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        // Bottom panel with back button and information
+        JPanel bottomContainer = new JPanel(new BorderLayout());
+        bottomContainer.setBackground(new Color(240, 248, 255));
+
+        // Back button panel
+        JPanel backPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        backPanel.setBackground(new Color(240, 248, 255));
+        backPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
+
+        btnBack = createStyledButton("Volver", new Color(231, 76, 60));
+        btnBack.setPreferredSize(new Dimension(120, 40));
+        backPanel.add(btnBack);
+
+        // Info panel
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        infoPanel.setBackground(new Color(220, 220, 220));
+        infoPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0 Grupo 1");
         lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblInfo.setForeground(new Color(100, 100, 100));
+        infoPanel.add(lblInfo);
 
-        bottomPanel.add(lblInfo);
-        add(bottomPanel, BorderLayout.SOUTH);
+        bottomContainer.add(backPanel, BorderLayout.NORTH);
+        bottomContainer.add(infoPanel, BorderLayout.SOUTH);
+
+        add(bottomContainer, BorderLayout.SOUTH);
 
         // Back button action
         btnBack.addActionListener(e -> {
@@ -97,7 +114,34 @@ public class AlgorithmMenuView extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(200, 50));
 
-        // Optional hover effect would require additional listeners
+        // Hover effect
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            Color originalColor = backgroundColor;
+            Color hoverColor = backgroundColor.darker();
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+                button.repaint();
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(originalColor);
+                button.repaint();
+            }
+
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor.darker());
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+            }
+        });
+
         return button;
     }
 
@@ -114,6 +158,10 @@ public class AlgorithmMenuView extends JFrame {
         btnHashSearch.addActionListener(listener);
     }
 
+    public void addTreeSearchListener(ActionListener listener) {
+        btnTreeSearch.addActionListener(listener);
+    }
+
     public void addBackListener(ActionListener listener) {
         btnBack.addActionListener(listener);
     }
@@ -122,5 +170,4 @@ public class AlgorithmMenuView extends JFrame {
     public void showWindow() {
         setVisible(true);
     }
-
 }

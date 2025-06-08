@@ -1,20 +1,19 @@
 package controller;
 
 import model.DigitalTreeModel;
-import model.ResidueHashModel;
-import model.MultipleResidueTreeModel;
+import model.ResiduoSimpleModel;
+import model.ResiduoMultipleModel;  // ← Cambiado por la clase de tu amigo
 import model.HuffmanTreeModel;
 import view.AlgorithmMenuView;
-import view.MainView;
 import view.TreeView;
 import view.DigitalTreeView;
-import view.ResidueHashView;
-import view.MultipleResidueTreeView;
+import view.TrieResiduoSimpleView;
+import view.MultipleResiduoView;     // ← Cambiado por la clase de tu amigo
 import view.HuffmanTreeView;
 
 public class TreeController {
     private TreeView view;
-    private MainView mainView;
+    private AlgorithmMenuView algorithmMenuView;
 
     public TreeController(TreeView view) {
         this.view = view;
@@ -23,10 +22,10 @@ public class TreeController {
         // TreeView -> DigitalTreeView
         view.addDigitalTreeListener(e -> openDigitalTree());
 
-        // TreeView -> ResidueHashView (Árbol por Residuos)
-        view.addWastedTreeListener(e -> openResidueHash());
+        // TreeView -> TrieResiduoSimpleView (Árbol por Residuos)
+        view.addWastedTreeListener(e -> openResidueSimple());
 
-        // TreeView -> MultipleResidueTreeView (Árbol por Residuos Múltiples)
+        // TreeView -> MultipleResiduoView (Árbol por Residuos Múltiples) ← Actualizado
         view.addMultipleWastedTreeListener(e -> openMultipleResidueTree());
 
         // TreeView -> HuffmanTreeView (Árbol Huffman)
@@ -56,61 +55,43 @@ public class TreeController {
         digitalTreeController.initView();
     }
 
-    // Método para abrir la vista de hash residual
-    public void openResidueHash() {
+    // Método para abrir la vista de residuo simple
+    public void openResidueSimple() {
         // Ocultar esta vista (no cerrarla completamente)
         view.setVisible(false);
 
-        // Crear modelo y vista para el hash residual
-        ResidueHashModel residueHashModel = new ResidueHashModel(11); // Usar un número primo como tamaño inicial
-        ResidueHashView residueHashView = new ResidueHashView();
+        // Crear modelo y vista para el residuo simple
+        ResiduoSimpleModel residueSimpleModel = new ResiduoSimpleModel();
+        TrieResiduoSimpleView residueSimpleView = new TrieResiduoSimpleView();
 
-        // Pasar las referencias al controlador y a la vista actual
-        ResidueHashController residueHashController = new ResidueHashController(
-                residueHashModel,
-                residueHashView,
-                this,  // Pasar referencia a este controlador
-                view   // Pasar referencia a esta vista
+        // Crear el controlador de residuo simple
+        ResiduoSimpleController residueSimpleController = new ResiduoSimpleController(
+                residueSimpleModel,
+                residueSimpleView
         );
 
         // Inicializar la vista
-        residueHashController.initView();
-
-        // Cargar algunos datos de ejemplo (opcional)
-        residueHashModel.put(25, "Veinticinco");
-        residueHashModel.put(42, "Cuarenta y dos");
-        residueHashModel.put(53, "Cincuenta y tres");
-        residueHashController.updateVisualization();
+        residueSimpleController.init();
     }
 
-    // Método para abrir la vista de árbol de residuos múltiples
+    // Método actualizado para usar las clases de tu amigo
     public void openMultipleResidueTree() {
         // Ocultar esta vista (no cerrarla completamente)
         view.setVisible(false);
 
-        // Usar varios divisores primos para el método de residuos múltiples
-        int[] divisors = {11, 13, 17, 19, 23};
-        MultipleResidueTreeModel multipleResidueModel = new MultipleResidueTreeModel(divisors);
-        MultipleResidueTreeView multipleResidueView = new MultipleResidueTreeView();
+        // Usar un tamaño de grupo para residuos múltiples (tu amigo usa tamGrupo)
+        int tamGrupo = 2; // Puedes ajustar este valor según necesites
+        ResiduoMultipleModel multipleResidueModel = new ResiduoMultipleModel(tamGrupo);
+        MultipleResiduoView multipleResidueView = new MultipleResiduoView(tamGrupo);
 
-        // Pasar las referencias al controlador y a la vista actual
-        MultipleResidueTreeController multipleResidueController = new MultipleResidueTreeController(
+        // Crear el controlador de tu amigo
+        ResiduoMultipleController multipleResidueController = new ResiduoMultipleController(
                 multipleResidueModel,
-                multipleResidueView,
-                this,  // Pasar referencia a este controlador
-                view   // Pasar referencia a esta vista
+                multipleResidueView
         );
 
-        // Inicializar la vista
-        multipleResidueController.initView();
-
-        // Cargar algunos datos de ejemplo (opcional)
-        multipleResidueModel.put(25, "Veinticinco");
-        multipleResidueModel.put(42, "Cuarenta y dos");
-        multipleResidueModel.put(53, "Cincuenta y tres");
-        multipleResidueModel.put(14, "Catorce");
-        multipleResidueModel.put(36, "Treinta y seis");
-        multipleResidueController.updateVisualization();
+        // Inicializar la vista usando el método de tu amigo
+        multipleResidueController.init();
     }
 
     public void openHuffmanTree() {
@@ -126,19 +107,38 @@ public class TreeController {
                 view
         );
 
-
         huffmanController.initView();
     }
 
-    public void setMainView(MainView mainView) {
-        this.mainView = mainView;
+    /**
+     * Sets the reference to the algorithm menu view for navigation purposes
+     */
+    public void setAlgorithmMenuView(AlgorithmMenuView algorithmMenuView) {
+        this.algorithmMenuView = algorithmMenuView;
     }
 
+    /**
+     * Navigate back to the algorithm menu
+     */
     private void goBack() {
         view.dispose();
 
-        if (mainView != null) {
-            mainView.setVisible(true);
+        if (algorithmMenuView != null) {
+            algorithmMenuView.setVisible(true);
         }
+    }
+
+    /**
+     * Show the tree view
+     */
+    public void showView() {
+        view.showWindow();
+    }
+
+    /**
+     * Get the tree view instance
+     */
+    public TreeView getView() {
+        return view;
     }
 }

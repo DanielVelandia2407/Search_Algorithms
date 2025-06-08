@@ -5,15 +5,13 @@ import view.AlgorithmMenuView;
 import view.ExternalSearchMenuView;
 import view.IndicesMenuView;
 import view.SearchMenuView;
-import view.TreeView;
 
 public class MainController {
     private MainView mainView;
     private AlgorithmMenuController algorithmMenuController;
-    private ExternalSearchMenuController externalSearchMenuController; // NUEVO
+    private ExternalSearchMenuController externalSearchMenuController;
     private IndicesMenuController indicesMenuController;
     private SearchMenuController searchMenuController;
-    private TreeView treeView;
 
     public MainController(MainView mainView) {
         this.mainView = mainView;
@@ -30,7 +28,7 @@ public class MainController {
         this.algorithmMenuController = new AlgorithmMenuController(algorithmMenuView);
         this.algorithmMenuController.setMainView(mainView);
 
-        // Create External Search Menu Controller (NUEVO)
+        // Create External Search Menu Controller
         ExternalSearchMenuView externalSearchMenuView = new ExternalSearchMenuView();
         this.externalSearchMenuController = new ExternalSearchMenuController(externalSearchMenuView);
         this.externalSearchMenuController.setMainView(mainView);
@@ -53,17 +51,17 @@ public class MainController {
         // MainView -> AlgorithmMenuView (Internal Search)
         this.mainView.addInternalSearchListener(e -> openAlgorithmMenu());
 
-        // MainView -> ExternalSearchMenuView (External Search) - NUEVO
+        // MainView -> ExternalSearchMenuView (External Search)
         this.mainView.addExternalSearchListener(e -> openExternalSearchMenu());
-
-        // MainView -> TreeView
-        this.mainView.addTreeSearchListener(e -> openTreeView());
 
         // MainView -> IndicesMenuView
         this.mainView.addIndicesListener(e -> openIndicesMenu());
 
         // MainView -> SearchMenuView (Dynamic Search)
         this.mainView.addDynamicSearchListener(e -> openSearchMenu());
+
+        // NOTA: addTreeSearchListener fue removido porque el botón de árboles
+        // ahora está en AlgorithmMenuView, no en MainView
     }
 
     /**
@@ -75,7 +73,7 @@ public class MainController {
     }
 
     /**
-     * Open the external search menu (NUEVO MÉTODO)
+     * Open the external search menu
      */
     private void openExternalSearchMenu() {
         mainView.setVisible(false);
@@ -96,17 +94,6 @@ public class MainController {
     private void openSearchMenu() {
         mainView.setVisible(false);
         searchMenuController.showView();
-    }
-
-    /**
-     * Open the tree view with its controller
-     */
-    private void openTreeView() {
-        mainView.setVisible(false);
-        treeView = new TreeView();
-        TreeController treeController = new TreeController(treeView);
-        treeController.setMainView(mainView);
-        treeView.showWindow();
     }
 
     /**
@@ -131,7 +118,7 @@ public class MainController {
     }
 
     /**
-     * Get the external search menu controller (NUEVO GETTER)
+     * Get the external search menu controller
      */
     public ExternalSearchMenuController getExternalSearchMenuController() {
         return externalSearchMenuController;
