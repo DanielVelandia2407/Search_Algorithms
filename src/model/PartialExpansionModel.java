@@ -68,6 +68,54 @@ public class PartialExpansionModel {
         return pasos;
     }
 
+    /**
+     * Nuevo método para insertar una clave sin verificar la densidad máxima
+     */
+    public List<String> insertarForzado(int clave) {
+        List<String> pasos = new ArrayList<>();
+
+        int ocupActual = claves.size() + contarColisiones();
+        double densAntes = (double) ocupActual / (filas * n);
+        pasos.add(String.format("Densidad (Expansión) antes: %.2f", densAntes));
+
+        double densDesp = (double) (ocupActual + 1) / (filas * n);
+        pasos.add(String.format("Densidad (Expansión) tras insertar: %.2f", densDesp));
+        pasos.add("H(" + clave + ") = " + clave + " mod " + n + " = " + (clave % n));
+
+        if (claves.contains(clave)) {
+            pasos.add("La estructura no admite claves repetidas.");
+            return pasos;
+        }
+
+        // Insertar sin verificar densidad máxima
+        int col = clave % n;
+        if (tabla[0][col] == null) {
+            tabla[0][col] = clave;
+            claves.add(clave);
+            pasos.add("Insertado en fila 1, columna " + col);
+        } else if (tabla[1][col] == null) {
+            tabla[1][col] = clave;
+            claves.add(clave);
+            pasos.add("Insertado en fila 2, columna " + col);
+        } else {
+            colisiones.get(col).add(clave);
+            pasos.add("Colisión externa en columna " + col);
+        }
+
+        if (densDesp > densMaxInsert) {
+            pasos.add("Densidad máxima superada: " + String.format("%.2f", densDesp));
+        }
+
+        return pasos;
+    }
+
+    /**
+     * Nuevo método para obtener la ocupación actual
+     */
+    public int obtenerOcupacionActual() {
+        return claves.size() + contarColisiones();
+    }
+
     public List<String> eliminar(int clave, boolean permitirReduccion) {
         List<String> pasos = new ArrayList<>();
 
@@ -182,8 +230,8 @@ public class PartialExpansionModel {
     public double getDensidadMinDelete() {
         return densMinDelete;
     }
+    
     public double obtenerDensidadReduccion() {
         return (double) claves.size() / n; // DOR = claves / columnas (sin filas)
     }
 }
-
