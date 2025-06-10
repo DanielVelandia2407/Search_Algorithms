@@ -1,5 +1,5 @@
-import controller.MainController;
-import view.MainView;
+import controller.menu.MainController;
+import view.menu.MainView;
 
 import javax.swing.*;
 
