@@ -45,8 +45,9 @@ public class HashExpansionController {
     private void init() {
         try {
             int n = Integer.parseInt(JOptionPane.showInputDialog("Ingrese N (columnas):"));
-            double dMax = Double.parseDouble(JOptionPane.showInputDialog("Ingrese densidad MÁXIMA (0-1):"));
-            double dMin = Double.parseDouble(JOptionPane.showInputDialog("Ingrese densidad MÍNIMA (0-1):"));
+            // Valores fijos para densidad
+            double dMax = 0.75;
+            double dMin = 0.25;
 
             model = new HashExpansionModel(n, dMax, dMin);
             view = new HashExpansionView();
@@ -107,12 +108,14 @@ public class HashExpansionController {
             return;
         }
 
+        // Primero intentamos insertar la clave
         List<String> pasos = model.insertar(clave);
         view.mostrarPasos(pasos.toArray(new String[0]));
 
         boolean excede = pasos.stream().anyMatch(p -> p.contains("Se superará la densidad máxima."));
 
         if (excede) {
+            // Si excede la densidad, preguntamos si quiere expandir
             int r = JOptionPane.showConfirmDialog(
                     view,
                     "Se superará la densidad máxima.\n¿Desea expandir la estructura?",
@@ -121,10 +124,12 @@ public class HashExpansionController {
             );
             if (r == JOptionPane.YES_OPTION) {
                 model.expandir(clavesInsertadas);
+                // Reinsertamos todas las claves anteriores
                 for (int k : new ArrayList<>(clavesInsertadas)) {
                     List<String> p2 = model.insertar(k);
                     view.mostrarPasos(p2.toArray(new String[0]));
                 }
+                // Insertamos la nueva clave
                 pasos = model.insertar(clave);
                 view.mostrarPasos(pasos.toArray(new String[0]));
                 clavesInsertadas.add(clave);
@@ -132,6 +137,7 @@ public class HashExpansionController {
                 view.mostrarPasos(new String[]{"Operación cancelada. No se insertó la clave."});
             }
         } else {
+            // Si no excede la densidad, simplemente agregamos la clave a la lista
             clavesInsertadas.add(clave);
         }
 

@@ -43,11 +43,13 @@ public class HashExpansionModel {
             return pasos;
         }
 
+        // Verificar si se superará la densidad máxima
         if (densDesp > densMaxInsert) {
             pasos.add("Se superará la densidad máxima.");
             return pasos;
         }
 
+        // Proceder con la inserción
         int col = clave % n;
         if (tabla[0][col] == null) {
             tabla[0][col] = clave;
@@ -119,7 +121,6 @@ public class HashExpansionModel {
         return pasos;
     }
 
-
     public void expandir(List<Integer> anteriores) {
         n *= 2;
         double tmpMax = densMaxInsert, tmpMin = densMinDelete;
@@ -162,7 +163,6 @@ public class HashExpansionModel {
         int total = claves.size() + contarColisiones();
         return (double) total / (filas * n);
     }
-
 
     public int obtenerClavesInsertadas() {
         return claves.size();

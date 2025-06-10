@@ -45,8 +45,9 @@ public class PartialExpansionController {
     private void init() {
         try {
             int n = Integer.parseInt(JOptionPane.showInputDialog("Ingrese N (columnas):"));
-            double dMax = Double.parseDouble(JOptionPane.showInputDialog("Ingrese densidad MÁXIMA (0-1):"));
-            double dMin = Double.parseDouble(JOptionPane.showInputDialog("Ingrese densidad MÍNIMA (0-1):"));
+            // Valores fijos para densidad máxima y mínima
+            double dMax = 0.75;
+            double dMin = 0.25;
 
             model = new PartialExpansionModel(n, dMax, dMin);
             view = new HashExpansionView();
@@ -110,33 +111,38 @@ public class PartialExpansionController {
             return;
         }
 
-        List<String> pasos = model.insertar(clave);
-        view.mostrarPasos(pasos.toArray(new String[0]));
+        // Verificar si excederá la densidad máxima antes de insertar
+        int ocupActual = model.obtenerOcupacionActual();
+        double densDesp = (double) (ocupActual + 1) / (2 * model.getColumnas());
+        boolean excedeDensidad = densDesp > model.getDensidadMaxInsert();
 
-        boolean excede = pasos.stream().anyMatch(p -> p.contains("Se superará la densidad máxima."));
+        if (excedeDensidad) {
+            // Primero insertar la clave (forzar inserción)
+            List<String> pasos = model.insertarForzado(clave);
+            view.mostrarPasos(pasos.toArray(new String[0]));
+            clavesInsertadas.add(clave);
+            view.setTabla(model.getTabla(), model.getColisiones());
 
-        if (excede) {
+            // Luego preguntar si quiere expandir
             int r = JOptionPane.showConfirmDialog(
                     view,
-                    "Se superará la densidad máxima.\n¿Desea expandir la estructura?",
+                    "La densidad máxima ha sido superada.\n¿Desea expandir la estructura?",
                     "Expansión parcial",
                     JOptionPane.YES_NO_OPTION
             );
+
             if (r == JOptionPane.YES_OPTION) {
                 model.expandir(clavesInsertadas);
+                view.mostrarPasos(new String[]{"Expandiendo estructura..."});
                 for (int k : new ArrayList<>(clavesInsertadas)) {
                     List<String> p2 = model.insertar(k);
                     view.mostrarPasos(p2.toArray(new String[0]));
                 }
-                pasos = model.insertar(clave);
-                view.mostrarPasos(pasos.toArray(new String[0]));
-                if (!pasos.contains("La estructura no admite claves repetidas.")) {
-                    clavesInsertadas.add(clave);
-                }
-            } else {
-                view.mostrarPasos(new String[]{"Operación cancelada. No se insertó la clave."});
             }
         } else {
+            // Inserción normal
+            List<String> pasos = model.insertar(clave);
+            view.mostrarPasos(pasos.toArray(new String[0]));
             clavesInsertadas.add(clave);
         }
 
