@@ -19,7 +19,7 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
     private final DigitalTreeView view;
     private TreeController parentController;
     private TreeView parentView;
-    private String logText = "";
+    private StringBuilder logText = new StringBuilder();
 
     public DigitalTreeController(DigitalTreeModel model, DigitalTreeView view) {
         this.model = model;
@@ -54,45 +54,37 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             view.setResultMessage("Por favor, ingrese una clave", false);
             return;
         }
-
-        // Preparamos el área de log
         JTextArea logArea = new JTextArea();
-        // Usamos la nueva firma: pasamos logArea al modelo
         boolean isNewWord = model.insert(word, logArea);
-
-        // Mensaje de éxito o error
         view.setResultMessage(
-            isNewWord
-                ? "Clave \"" + word + "\" insertada correctamente"
-                : "La clave \"" + word + "\" ya existe en el árbol",
+            isNewWord ? "Clave \"" + word + "\" insertada correctamente"
+                      : "La clave \"" + word + "\" ya existe en el árbol",
             isNewWord
         );
-
-        logText = logArea.getText();
-
-        view.clearInputFields();
+        logText.append(logArea.getText()).append("\n\n");
         updateVisualization();
+        //view.clearInputFields();
+        
     }
 
     private void searchWord(ActionEvent e) {
-        String word = view.getWordToSearch();
-        if (word.isEmpty()) {
-            view.setResultMessage("Por favor, ingrese una clave para buscar", false);
-            return;
-        }
-
-        boolean found = model.search(word);
-        view.setResultMessage(
-            found
-                ? "Clave \"" + word + "\" encontrada en el árbol"
-                : "Clave \"" + word + "\" no encontrada",
-            found
-        );
-
-        // Limpia el log anterior
-        logText = "";
-        updateVisualization();
+    String word = view.getWordToSearch();
+    if (word.isEmpty()) {
+        view.setResultMessage("Por favor, ingrese una clave para buscar", false);
+        return;
     }
+
+    JTextArea logArea = new JTextArea();
+    int nivel = model.getArbol().buscarYNivel(word, logArea);
+
+    boolean found = (nivel != -1);
+    String message = found ? "Clave \"" + word + "\" encontrada en nivel " + nivel
+                           : "Clave \"" + word + "\" no encontrada";
+    view.setResultMessage(message, found);
+    logText.append(logArea.getText()).append("\n");
+    updateVisualization();
+}
+
 
     private void deleteWord(ActionEvent e) {
         String word = view.getWordToDelete();
@@ -100,19 +92,14 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             view.setResultMessage("Por favor, ingrese una clave para eliminar", false);
             return;
         }
-
         JTextArea logArea = new JTextArea();
         boolean deleted = model.delete(word, logArea);
-
         view.setResultMessage(
-            deleted
-                ? "Clave \"" + word + "\" eliminada correctamente"
-                : "Clave \"" + word + "\" no encontrada",
+            deleted ? "Clave \"" + word + "\" eliminada correctamente"
+                    : "Clave \"" + word + "\" no encontrada",
             deleted
         );
-
-        logText = logArea.getText();
-
+        logText.append(logArea.getText()).append("\n");
         view.clearInputFields();
         updateVisualization();
     }
@@ -125,12 +112,11 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE
         );
-
         if (option == JOptionPane.YES_OPTION) {
             model.clear();
             view.setResultMessage("El árbol ha sido limpiado correctamente", true);
             view.clearInputFields();
-            logText = "";
+            logText.append("Árbol limpiado\n");
             updateVisualization();
         }
     }
@@ -143,12 +129,8 @@ public class DigitalTreeController implements DigitalTreeView.TreeVisualizer {
     }
 
     private void updateVisualization() {
-        // La vista mostrará el log en lugar de las palabras
-        String[] lines = logText.isEmpty()
-            ? new String[] { "(No hay operaciones recientes)" }
-            : logText.split("\\r?\\n");
+        String[] lines = logText.toString().split("\\r?\\n");
         view.updateWordList(lines);
-        // La visualización gráfica sigue igual:
         view.updateTrieVisualization(model.getTrieStructure());
     }
 
