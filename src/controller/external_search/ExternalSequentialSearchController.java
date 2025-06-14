@@ -1,7 +1,7 @@
 package controller.external_search;
 
 import view.external_search.ExternalSequentialSearchView;
-import view.external_search.ExternalSearchMenuView;
+import view.menu.ExternalSearchMenuView;
 
 import javax.swing.*;
 import java.io.*;

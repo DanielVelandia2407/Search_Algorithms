@@ -1,7 +1,11 @@
-package controller.external_search;
+package controller.menu;
 
-import view.external_search.ExternalSearchMenuView;
+import controller.external_search.ExternalBinarySearchController;
+import controller.external_search.ExternalHashAlgorithmController;
+import controller.external_search.ExternalSequentialSearchController;
+import view.menu.ExternalSearchMenuView;
 import view.menu.MainView;
+import view.menu.SearchMenuView; // NUEVO: Para manejar búsqueda dinámica
 import view.external_search.ExternalSequentialSearchView;
 import view.external_search.ExternalBinarySearchView;
 import view.external_search.ExternalHashAlgorithmView;
@@ -9,10 +13,22 @@ import view.external_search.ExternalHashAlgorithmView;
 public class ExternalSearchMenuController {
     private ExternalSearchMenuView externalSearchMenuView;
     private MainView mainView;
+    private SearchMenuController searchMenuController; // NUEVO: Para búsqueda dinámica
 
     public ExternalSearchMenuController(ExternalSearchMenuView externalSearchMenuView) {
         this.externalSearchMenuView = externalSearchMenuView;
+        initializeControllers(); // NUEVO: Inicializar sub-controladores
         initializeListeners();
+    }
+
+    /**
+     * Initialize sub-controllers (NUEVO)
+     */
+    private void initializeControllers() {
+        // Create Search Menu Controller para manejar búsqueda dinámica
+        SearchMenuView searchMenuView = new SearchMenuView();
+        this.searchMenuController = new SearchMenuController(searchMenuView);
+        // La referencia se establece después de que mainView esté disponible
     }
 
     /**
@@ -20,6 +36,11 @@ public class ExternalSearchMenuController {
      */
     public void setMainView(MainView mainView) {
         this.mainView = mainView;
+        // NUEVO: También pasar las referencias al controlador de búsqueda dinámica
+        if (searchMenuController != null) {
+            searchMenuController.setMainView(mainView);
+            searchMenuController.setExternalSearchMenuView(this.externalSearchMenuView);
+        }
     }
 
     /**
@@ -37,6 +58,9 @@ public class ExternalSearchMenuController {
 
         // Hash Search button
         this.externalSearchMenuView.addHashSearchListener(e -> openHashAlgorithmView());
+
+        // NUEVO: Dynamic Search button
+        this.externalSearchMenuView.addDynamicSearchListener(e -> openDynamicSearch());
     }
 
     /**
@@ -125,6 +149,21 @@ public class ExternalSearchMenuController {
     }
 
     /**
+     * Open Dynamic Search menu (NUEVO)
+     */
+    private void openDynamicSearch() {
+        try {
+            // Hide current menu and show the dynamic search menu
+            this.externalSearchMenuView.setVisible(false);
+            searchMenuController.showView();
+
+        } catch (Exception e) {
+            System.err.println("Error al abrir la búsqueda dinámica: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Show the external search menu view
      */
     public void showView() {
@@ -136,5 +175,12 @@ public class ExternalSearchMenuController {
      */
     public ExternalSearchMenuView getView() {
         return externalSearchMenuView;
+    }
+
+    /**
+     * Get the search menu controller (NUEVO)
+     */
+    public SearchMenuController getSearchMenuController() {
+        return searchMenuController;
     }
 }

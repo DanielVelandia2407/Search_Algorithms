@@ -16,91 +16,112 @@ public class AlgorithmMenuView extends JFrame {
     public AlgorithmMenuView() {
         // Basic window configuration
         setTitle("Algoritmos de Búsqueda Interna");
-        setSize(550, 400);
+        setSize(700, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(15, 15));
+        setLayout(new BorderLayout(10, 10));
 
-        // Set soft background color for the entire window
-        getContentPane().setBackground(new Color(240, 248, 255));
+        // Background color consistente con el menú principal
+        getContentPane().setBackground(new Color(250, 248, 245));
 
         // Top panel with title and subtitle
-        JPanel titlePanel = new JPanel();
-        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
-        titlePanel.setBackground(new Color(70, 130, 180)); // Steel Blue
-        titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        JLabel lblTitle = new JLabel("Búsqueda Interna");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTitle.setForeground(Color.WHITE);
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel lblSubtitle = new JLabel("Seleccione un algoritmo de búsqueda");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-        lblSubtitle.setForeground(new Color(240, 248, 255));
-        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        titlePanel.add(lblTitle);
-        titlePanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        titlePanel.add(lblSubtitle);
-
+        JPanel titlePanel = createTitlePanel();
         add(titlePanel, BorderLayout.NORTH);
 
-        // Center panel with buttons
-        JPanel centerPanel = new JPanel();
-        centerPanel.setLayout(new GridBagLayout());
-        centerPanel.setBackground(new Color(240, 248, 255));
-        centerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        // Main content panel
+        JPanel mainPanel = createMainPanel();
+        add(mainPanel, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(2, 2, 20, 20));
-        buttonPanel.setBackground(new Color(240, 248, 255));
-
-        // Custom styled buttons
-        btnSequentialSearch = createStyledButton("Búsqueda Secuencial", new Color(41, 128, 185));
-        btnBinarySearch = createStyledButton("Búsqueda Binaria", new Color(46, 134, 193));
-        btnHashSearch = createStyledButton("Funciones Hash", new Color(52, 152, 219));
-        btnTreeSearch = createStyledButton("Árboles de Búsqueda", new Color(155, 89, 182));
-
-        buttonPanel.add(btnSequentialSearch);
-        buttonPanel.add(btnBinarySearch);
-        buttonPanel.add(btnHashSearch);
-        buttonPanel.add(btnTreeSearch);
-
-        centerPanel.add(buttonPanel);
-        add(centerPanel, BorderLayout.CENTER);
-
-        // Bottom panel with back button and information
-        JPanel bottomContainer = new JPanel(new BorderLayout());
-        bottomContainer.setBackground(new Color(240, 248, 255));
-
-        // Back button panel
-        JPanel backPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        backPanel.setBackground(new Color(240, 248, 255));
-        backPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
-
-        btnBack = createStyledButton("Volver", new Color(231, 76, 60));
-        btnBack.setPreferredSize(new Dimension(120, 40));
-        backPanel.add(btnBack);
-
-        // Info panel
-        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        infoPanel.setBackground(new Color(220, 220, 220));
-        infoPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0 Grupo 1");
-        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblInfo.setForeground(new Color(100, 100, 100));
-        infoPanel.add(lblInfo);
-
-        bottomContainer.add(backPanel, BorderLayout.NORTH);
-        bottomContainer.add(infoPanel, BorderLayout.SOUTH);
-
-        add(bottomContainer, BorderLayout.SOUTH);
+        // Bottom panel
+        JPanel bottomPanel = createBottomPanel();
+        add(bottomPanel, BorderLayout.SOUTH);
 
         // Back button action
         btnBack.addActionListener(e -> {
         });
+    }
+
+    private JPanel createTitlePanel() {
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        // Header consistente con el menú principal
+        titlePanel.setBackground(new Color(0, 1, 13));
+        titlePanel.setBorder(new EmptyBorder(25, 20, 25, 20));
+
+        JLabel lblTitle = new JLabel("Búsqueda Interna");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel lblSubtitle = new JLabel("Seleccione un algoritmo de búsqueda");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        // Dorado claro para el subtítulo, consistente con el menú principal
+        lblSubtitle.setForeground(new Color(242, 202, 153));
+        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        titlePanel.add(lblTitle);
+        titlePanel.add(Box.createRigidArea(new Dimension(0, 8)));
+        titlePanel.add(lblSubtitle);
+
+        return titlePanel;
+    }
+
+    private JPanel createMainPanel() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(250, 248, 245));
+        mainPanel.setBorder(new EmptyBorder(30, 50, 20, 50));
+
+        // Color estándar para el nivel 2 de menús
+        Color level2Color = new Color(166, 133, 93);
+
+        // Create buttons with level 2 color
+        btnSequentialSearch = createStyledButton("Búsqueda Secuencial", level2Color);
+        btnBinarySearch = createStyledButton("Búsqueda Binaria", level2Color);
+        btnHashSearch = createStyledButton("Funciones Hash", level2Color);
+        btnTreeSearch = createStyledButton("Árboles de Búsqueda", level2Color);
+        btnBack = createStyledButton("Volver", new Color(0, 1, 13)); // Color especial para botón volver
+
+        // Main buttons grid (2x2)
+        JPanel gridPanel = new JPanel(new GridLayout(2, 2, 20, 20));
+        gridPanel.setBackground(new Color(250, 248, 245));
+        gridPanel.add(btnSequentialSearch);
+        gridPanel.add(btnBinarySearch);
+        gridPanel.add(btnHashSearch);
+        gridPanel.add(btnTreeSearch);
+
+        // Back button panel (centered)
+        JPanel backPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        backPanel.setBackground(new Color(250, 248, 245));
+        backPanel.setBorder(new EmptyBorder(20, 0, 20, 0));
+
+        // Botón de volver con tamaño más pequeño
+        btnBack.setPreferredSize(new Dimension(120, 40));
+        btnBack.setMinimumSize(new Dimension(120, 40));
+        backPanel.add(btnBack);
+
+        // Combine all panels
+        JPanel buttonsContainer = new JPanel(new BorderLayout(0, 0));
+        buttonsContainer.setBackground(new Color(250, 248, 245));
+        buttonsContainer.add(gridPanel, BorderLayout.CENTER);
+        buttonsContainer.add(backPanel, BorderLayout.SOUTH);
+
+        mainPanel.add(buttonsContainer, BorderLayout.CENTER);
+
+        return mainPanel;
+    }
+
+    private JPanel createBottomPanel() {
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        // Footer consistente con el menú principal
+        bottomPanel.setBackground(new Color(245, 240, 235));
+        bottomPanel.setBorder(new EmptyBorder(12, 10, 12, 10));
+
+        JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0 Grupo 1");
+        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblInfo.setForeground(new Color(39, 89, 80));
+
+        bottomPanel.add(lblInfo);
+        return bottomPanel;
     }
 
     // Method to create a styled button
@@ -112,12 +133,17 @@ public class AlgorithmMenuView extends JFrame {
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(200, 50));
 
-        // Hover effect
+        // Tamaño optimizado para los botones principales
+        button.setPreferredSize(new Dimension(260, 65));
+        button.setMinimumSize(new Dimension(260, 65));
+        button.setMaximumSize(new Dimension(260, 65));
+
+        // Efecto hover consistente con el menú principal
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             Color originalColor = backgroundColor;
-            Color hoverColor = backgroundColor.darker();
+            Color hoverColor = brightenColor(backgroundColor, 20);
+            Color pressedColor = darkenColor(backgroundColor, 15);
 
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -133,7 +159,7 @@ public class AlgorithmMenuView extends JFrame {
 
             @Override
             public void mousePressed(java.awt.event.MouseEvent evt) {
-                button.setBackground(hoverColor.darker());
+                button.setBackground(pressedColor);
             }
 
             @Override
@@ -143,6 +169,21 @@ public class AlgorithmMenuView extends JFrame {
         });
 
         return button;
+    }
+
+    // Métodos auxiliares para manipular colores de forma más sutil
+    private Color brightenColor(Color color, int amount) {
+        int r = Math.min(255, color.getRed() + amount);
+        int g = Math.min(255, color.getGreen() + amount);
+        int b = Math.min(255, color.getBlue() + amount);
+        return new Color(r, g, b);
+    }
+
+    private Color darkenColor(Color color, int amount) {
+        int r = Math.max(0, color.getRed() - amount);
+        int g = Math.max(0, color.getGreen() - amount);
+        int b = Math.max(0, color.getBlue() - amount);
+        return new Color(r, g, b);
     }
 
     // Methods to assign external actions to buttons

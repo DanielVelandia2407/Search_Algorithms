@@ -1,18 +1,16 @@
 package controller.menu;
 
-import controller.external_search.ExternalSearchMenuController;
 import view.menu.MainView;
 import view.menu.AlgorithmMenuView;
-import view.external_search.ExternalSearchMenuView;
+import view.menu.ExternalSearchMenuView;
 import view.menu.IndicesMenuView;
-import view.menu.SearchMenuView;
 
 public class MainController {
     private MainView mainView;
     private AlgorithmMenuController algorithmMenuController;
     private ExternalSearchMenuController externalSearchMenuController;
     private IndicesMenuController indicesMenuController;
-    private SearchMenuController searchMenuController;
+    // REMOVIDO: searchMenuController - Ya no se maneja desde el menú principal
 
     public MainController(MainView mainView) {
         this.mainView = mainView;
@@ -39,10 +37,7 @@ public class MainController {
         this.indicesMenuController = new IndicesMenuController(indicesMenuView);
         this.indicesMenuController.setMainView(mainView);
 
-        // Create Search Menu Controller
-        SearchMenuView searchMenuView = new SearchMenuView();
-        this.searchMenuController = new SearchMenuController(searchMenuView);
-        this.searchMenuController.setMainView(mainView);
+        // REMOVIDO: SearchMenuController - Ahora se maneja desde ExternalSearchMenuController
     }
 
     /**
@@ -58,11 +53,7 @@ public class MainController {
         // MainView -> IndicesMenuView
         this.mainView.addIndicesListener(e -> openIndicesMenu());
 
-        // MainView -> SearchMenuView (Dynamic Search)
-        this.mainView.addDynamicSearchListener(e -> openSearchMenu());
-
-        // NOTA: addTreeSearchListener fue removido porque el botón de árboles
-        // ahora está en AlgorithmMenuView, no en MainView
+        // REMOVIDO: addDynamicSearchListener - Ya no está en el menú principal
     }
 
     /**
@@ -89,13 +80,7 @@ public class MainController {
         indicesMenuController.getView().setVisible(true);
     }
 
-    /**
-     * Open the search menu
-     */
-    private void openSearchMenu() {
-        mainView.setVisible(false);
-        searchMenuController.showView();
-    }
+    // REMOVIDO: openSearchMenu() - Ya no se necesita aquí
 
     /**
      * Show the main view
@@ -132,12 +117,7 @@ public class MainController {
         return indicesMenuController;
     }
 
-    /**
-     * Get the search menu controller
-     */
-    public SearchMenuController getSearchMenuController() {
-        return searchMenuController;
-    }
+    // REMOVIDO: getSearchMenuController() - Ya no se maneja aquí
 
     /**
      * Main method for demonstration

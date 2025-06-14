@@ -5,17 +5,17 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
-public class IndicesMenuView extends JFrame {
+public class ExternalSearchMenuView extends JFrame {
 
-    private JButton btnPrimaryIndex;
-    private JButton btnSecondaryIndex;
-    private JButton btnMultilevelPrimary;
-    private JButton btnMultilevelSecondary;
+    private JButton btnSequentialSearch;
+    private JButton btnBinarySearch;
+    private JButton btnHashSearch;
+    private JButton btnDynamicSearch; // NUEVO: Búsqueda Dinámica movida aquí
     private JButton btnBack;
 
-    public IndicesMenuView() {
+    public ExternalSearchMenuView() {
         // Basic window configuration
-        setTitle("Algoritmos de Búsqueda - Índices");
+        setTitle("Búsqueda Externa");
         setSize(700, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -36,7 +36,7 @@ public class IndicesMenuView extends JFrame {
         JPanel bottomPanel = createBottomPanel();
         add(bottomPanel, BorderLayout.SOUTH);
 
-        // Back button action placeholder
+        // Back button action
         btnBack.addActionListener(e -> {
         });
     }
@@ -48,12 +48,12 @@ public class IndicesMenuView extends JFrame {
         titlePanel.setBackground(new Color(0, 1, 13));
         titlePanel.setBorder(new EmptyBorder(25, 20, 25, 20));
 
-        JLabel lblTitle = new JLabel("Índices");
+        JLabel lblTitle = new JLabel("Búsqueda Externa");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lblSubtitle = new JLabel("Seleccione un tipo de índice para continuar");
+        JLabel lblSubtitle = new JLabel("Seleccione un algoritmo de búsqueda");
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         // Dorado claro para el subtítulo, consistente con los demás menús
         lblSubtitle.setForeground(new Color(242, 202, 153));
@@ -75,19 +75,19 @@ public class IndicesMenuView extends JFrame {
         Color level2Color = new Color(166, 133, 93);
 
         // Create buttons with level 2 color
-        btnPrimaryIndex = createStyledButton("Índice Principal", level2Color);
-        btnSecondaryIndex = createStyledButton("Índice Secundario", level2Color);
-        btnMultilevelPrimary = createStyledButton("Multinivel Principal", level2Color);
-        btnMultilevelSecondary = createStyledButton("Multinivel Dinámico", level2Color);
+        btnSequentialSearch = createStyledButton("Búsqueda Secuencial", level2Color);
+        btnBinarySearch = createStyledButton("Búsqueda Binaria", level2Color);
+        btnHashSearch = createStyledButton("Funciones Hash", level2Color);
+        btnDynamicSearch = createStyledButton("Búsqueda Dinámica", level2Color); // NUEVO
         btnBack = createStyledButton("Volver", new Color(0, 1, 13)); // Color especial para botón volver
 
-        // Main buttons grid (2x2)
+        // Main buttons grid (2x2) - ahora con 4 botones
         JPanel gridPanel = new JPanel(new GridLayout(2, 2, 20, 20));
         gridPanel.setBackground(new Color(250, 248, 245));
-        gridPanel.add(btnPrimaryIndex);
-        gridPanel.add(btnSecondaryIndex);
-        gridPanel.add(btnMultilevelPrimary);
-        gridPanel.add(btnMultilevelSecondary);
+        gridPanel.add(btnSequentialSearch);
+        gridPanel.add(btnBinarySearch);
+        gridPanel.add(btnHashSearch);
+        gridPanel.add(btnDynamicSearch); // NUEVO: Agregado aquí
 
         // Back button panel (centered)
         JPanel backPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -187,26 +187,23 @@ public class IndicesMenuView extends JFrame {
     }
 
     // Methods to assign external actions to buttons
-    public void addPrimaryIndexListener(ActionListener listener) {
-        btnPrimaryIndex.addActionListener(listener);
+    public void addSequentialSearchListener(ActionListener listener) {
+        btnSequentialSearch.addActionListener(listener);
     }
 
-    public void addSecondaryIndexListener(ActionListener listener) {
-        btnSecondaryIndex.addActionListener(listener);
+    public void addBinarySearchListener(ActionListener listener) {
+        btnBinarySearch.addActionListener(listener);
     }
 
-    public void addMultilevelPrimaryListener(ActionListener listener) {
-        btnMultilevelPrimary.addActionListener(listener);
+    public void addHashSearchListener(ActionListener listener) {
+        btnHashSearch.addActionListener(listener);
     }
 
-    public void addMultilevelSecondaryListener(ActionListener listener) {
-        btnMultilevelSecondary.addActionListener(listener);
+    public void addDynamicSearchListener(ActionListener listener) {
+        btnDynamicSearch.addActionListener(listener);
     }
 
     public void addBackListener(ActionListener listener) {
-        for (ActionListener al : btnBack.getActionListeners()) {
-            btnBack.removeActionListener(al);
-        }
         btnBack.addActionListener(listener);
     }
 

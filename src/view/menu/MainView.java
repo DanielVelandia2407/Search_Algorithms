@@ -8,7 +8,6 @@ import java.awt.event.ActionListener;
 public class MainView extends JFrame {
     private JButton btnInternalSearch;
     private JButton btnExternalSearch;
-    private JButton btnDynamicSearch;
     private JButton btnIndices;
     private JButton btnExit;
 
@@ -69,20 +68,27 @@ public class MainView extends JFrame {
         mainPanel.setBackground(new Color(250, 248, 245));
         mainPanel.setBorder(new EmptyBorder(30, 50, 20, 50));
 
-        // Create buttons with elegant earth tone palette
-        btnInternalSearch = createStyledButton("Búsqueda Interna", new Color(115, 73, 22));
-        btnExternalSearch = createStyledButton("Búsqueda Externa", new Color(166, 133, 93));
-        btnDynamicSearch = createStyledButton("Búsqueda Dinámica", new Color(242, 202, 153));
-        btnIndices = createStyledButton("Índices", new Color(13, 13, 13));
-        btnExit = createStyledButton("Salir", new Color(0, 1, 13));
+        // Color estándar para el menú principal (color del primer botón)
+        Color mainMenuColor = new Color(115, 73, 22);
 
-        // Main buttons grid (2x2)
+        // Create buttons with the same color for main menu level
+        // REMOVIDO: btnDynamicSearch - Ahora será parte de búsqueda externa
+        btnInternalSearch = createStyledButton("Búsqueda Interna", mainMenuColor);
+        btnExternalSearch = createStyledButton("Búsqueda Externa", mainMenuColor);
+        btnIndices = createStyledButton("Índices", mainMenuColor);
+        btnExit = createStyledButton("Salir", new Color(0, 1, 13)); // Mantener el color original para el botón salir
+
+        // Main buttons panel - ahora solo 3 botones principales en diseño 2x2
         JPanel gridPanel = new JPanel(new GridLayout(2, 2, 20, 20));
         gridPanel.setBackground(new Color(250, 248, 245));
         gridPanel.add(btnInternalSearch);
         gridPanel.add(btnExternalSearch);
-        gridPanel.add(btnDynamicSearch);
         gridPanel.add(btnIndices);
+
+        // Panel vacío para balance visual
+        JPanel emptyPanel = new JPanel();
+        emptyPanel.setBackground(new Color(250, 248, 245));
+        gridPanel.add(emptyPanel);
 
         // Exit button panel (centered)
         JPanel exitPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -124,12 +130,8 @@ public class MainView extends JFrame {
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setBackground(backgroundColor);
 
-        // Ajustar color del texto según el fondo
-        if (text.equals("Búsqueda Dinámica")) {
-            button.setForeground(new Color(39, 89, 80)); // Texto oscuro para fondo claro
-        } else {
-            button.setForeground(Color.WHITE); // Texto blanco para fondos oscuros
-        }
+        // Texto blanco para todos los botones del menú principal
+        button.setForeground(Color.WHITE);
 
         button.setFocusPainted(false);
         button.setBorderPainted(false);
@@ -196,9 +198,7 @@ public class MainView extends JFrame {
         btnExternalSearch.addActionListener(listener);
     }
 
-    public void addDynamicSearchListener(ActionListener listener) {
-        btnDynamicSearch.addActionListener(listener);
-    }
+    // REMOVIDO: addDynamicSearchListener - Ya no es necesario en el menú principal
 
     public void addIndicesListener(ActionListener listener) {
         btnIndices.addActionListener(listener);

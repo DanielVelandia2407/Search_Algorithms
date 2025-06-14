@@ -4,6 +4,7 @@ import view.menu.AlgorithmMenuView;
 import view.internal_search.SequentialSearchView;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -18,6 +19,7 @@ public class SequentialSearchController {
     private List<Integer> dataArray;
     private AlgorithmMenuView algorithmMenuView;
     private int digitLimit = 2; // Límite de dígitos por defecto
+    private String currentFilePath = "src/utilities/datos-busqueda-secuencial.txt"; // Archivo por defecto
 
     public SequentialSearchController(SequentialSearchView view) {
         this.view = view;
@@ -26,7 +28,7 @@ public class SequentialSearchController {
         // Initialize components
         initComponents();
 
-        // Load data from file when creating the controller
+        // Load data from default file when creating the controller
         loadDataFromFile();
 
         // Display data in the table
@@ -102,7 +104,105 @@ public class SequentialSearchController {
                 view.setResultMessage("Por favor ingrese una clave para eliminar", false);
             }
         });
+        view.addLoadFromFileListener(e -> loadFromExternalFile());
         view.addBackListener(e -> goBack());
+    }
+
+    // Método para cargar archivo externo
+    private void loadFromExternalFile() {
+        JFileChooser fileChooser = new JFileChooser();
+
+        // Configurar el filtro para archivos de texto
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de texto (*.txt)", "txt");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        // Establecer directorio inicial
+        fileChooser.setCurrentDirectory(new File("src/utilities"));
+
+        // Configurar título del diálogo
+        fileChooser.setDialogTitle("Seleccionar archivo de datos");
+
+        int result = fileChooser.showOpenDialog(view);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+
+            try {
+                // Intentar cargar datos del archivo seleccionado
+                List<Integer> newData = loadDataFromExternalFile(selectedFile);
+
+                if (!newData.isEmpty()) {
+                    // Actualizar el array de datos
+                    dataArray.clear();
+                    dataArray.addAll(newData);
+
+                    // Actualizar el archivo actual
+                    currentFilePath = selectedFile.getAbsolutePath();
+
+                    // Mostrar datos en la tabla
+                    displayDataInTable();
+
+                    // Limpiar highlights
+                    view.clearHighlights();
+
+                    view.setResultMessage("Datos cargados desde: " + selectedFile.getName() +
+                            " (" + dataArray.size() + " elementos)", true);
+                } else {
+                    view.setResultMessage("El archivo seleccionado está vacío o no contiene datos válidos", false);
+                }
+
+            } catch (IOException ex) {
+                view.setResultMessage("Error al leer el archivo: " + ex.getMessage(), false);
+            } catch (Exception ex) {
+                view.setResultMessage("Error inesperado al cargar el archivo: " + ex.getMessage(), false);
+            }
+        }
+    }
+
+    // Método para cargar datos desde un archivo externo específico
+    private List<Integer> loadDataFromExternalFile(File file) throws IOException {
+        List<Integer> data = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+
+                if (line.isEmpty()) {
+                    continue; // Saltar líneas vacías
+                }
+
+                // Si la línea contiene corchetes, procesarla como array
+                if (line.contains("[") && line.contains("]")) {
+                    line = line.replace("[", "").replace("]", "");
+                }
+
+                // Dividir por comas, espacios o ambos
+                String[] values = line.split("[,\\s]+");
+
+                for (String value : values) {
+                    value = value.trim();
+
+                    if (!value.isEmpty()) {
+                        try {
+                            int num = Integer.parseInt(value);
+                            data.add(num);
+                        } catch (NumberFormatException e) {
+                            // Si no es un número válido, agregar como -1 (vacío)
+                            if (!value.equals("-1")) {
+                                System.err.println("Valor no numérico ignorado: " + value);
+                            } else {
+                                data.add(-1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return data;
     }
 
     // Método para validar la cantidad de dígitos
@@ -148,17 +248,21 @@ public class SequentialSearchController {
             dataArray.add(-1);
         }
 
-        // Guardar en el archivo
+        // Guardar en el archivo actual
         saveArrayToFile();
 
         // Actualizar la vista
         displayDataInTable();
     }
 
-    // Método para guardar el arreglo en el archivo
+    // Método para guardar el arreglo en el archivo actual
     private void saveArrayToFile() {
         try {
-            File file = new File("src/utilities/datos-busqueda-secuencial.txt");
+            File file = new File(currentFilePath);
+
+            // Crear directorios padre si no existen
+            file.getParentFile().mkdirs();
+
             try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
                 writer.println(dataArray.toString());
             }
@@ -172,38 +276,24 @@ public class SequentialSearchController {
         dataArray.clear();
 
         try {
-            // Path to the file
-            File file = new File("src/utilities/datos-busqueda-secuencial.txt");
+            // Path to the default file
+            File file = new File(currentFilePath);
 
             if (!file.exists()) {
                 System.err.println("El archivo de datos no existe: " + file.getAbsolutePath());
+                // Crear un array vacío por defecto
+                dataArray.add(-1);
                 return;
             }
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line = reader.readLine();
+            List<Integer> loadedData = loadDataFromExternalFile(file);
+            dataArray.addAll(loadedData);
 
-                if (line != null) {
-                    // Remove brackets if present
-                    line = line.replace("[", "").replace("]", "");
-
-                    // Split by comma
-                    String[] values = line.split(",");
-
-                    // Convert to integers and add to array
-                    for (String value : values) {
-                        try {
-                            int num = Integer.parseInt(value.trim());
-                            dataArray.add(num);
-                        } catch (NumberFormatException e) {
-                            System.err.println("Valor no numérico encontrado: " + value);
-                        }
-                    }
-                }
-            }
         } catch (IOException e) {
             System.err.println("Error al leer el archivo: " + e.getMessage());
             e.printStackTrace();
+            // Crear un array vacío por defecto en caso de error
+            dataArray.add(-1);
         }
     }
 
@@ -348,16 +438,9 @@ public class SequentialSearchController {
         for (int i = 0; i < newSize; i++) {
             dataArray.add(-1);
         }
-        // Save the new array to the file
-        try {
-            File file = new File("src/utilities/datos-busqueda-secuencial.txt");
-            try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
-                writer.println(dataArray.toString());
-            }
-        } catch (IOException e) {
-            System.err.println("Error al escribir en el archivo: " + e.getMessage());
-            e.printStackTrace();
-        }
+
+        // Save the new array to the current file
+        saveArrayToFile();
 
         // Display the new array in the table
         displayDataInTable();

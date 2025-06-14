@@ -1,7 +1,7 @@
 package controller.external_search;
 
 import view.external_search.ExternalHashAlgorithmView;
-import view.external_search.ExternalSearchMenuView;
+import view.menu.ExternalSearchMenuView;
 import view.external_search.ExternalModSearchView;
 import view.external_search.ExternalSquaredSearchView;
 import view.external_search.ExternalTruncSearchView;

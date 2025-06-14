@@ -16,82 +16,108 @@ public class HashAlgorithmView extends JFrame {
     public HashAlgorithmView() {
         // Basic window configuration
         setTitle("Algoritmos de Búsqueda");
-        setSize(600, 450); // Aumentado el tamaño para dar más espacio
+        setSize(700, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(15, 15));
+        setLayout(new BorderLayout(10, 10));
 
-        // Set soft background color for the entire window
-        getContentPane().setBackground(new Color(240, 248, 255)); // Alice Blue
+        // Background color consistente con los demás menús
+        getContentPane().setBackground(new Color(250, 248, 245));
 
         // Top panel with title and subtitle
+        JPanel titlePanel = createTitlePanel();
+        add(titlePanel, BorderLayout.NORTH);
+
+        // Main content panel
+        JPanel mainPanel = createMainPanel();
+        add(mainPanel, BorderLayout.CENTER);
+
+        // Bottom panel
+        JPanel bottomPanel = createBottomPanel();
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel createTitlePanel() {
         JPanel titlePanel = new JPanel();
         titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
-        titlePanel.setBackground(new Color(70, 130, 180)); // Steel Blue
-        titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        // Header consistente con los demás menús
+        titlePanel.setBackground(new Color(0, 1, 13));
+        titlePanel.setBorder(new EmptyBorder(25, 20, 25, 20));
 
-        JLabel lblTitle = new JLabel("Algoritmos de Búsqueda");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        JLabel lblTitle = new JLabel("Funciones Hash");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lblSubtitle = new JLabel("Seleccione una opción para continuar");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-        lblSubtitle.setForeground(new Color(240, 248, 255));
+        JLabel lblSubtitle = new JLabel("Seleccione una función hash para continuar");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        // Dorado claro para el subtítulo, consistente con los demás menús
+        lblSubtitle.setForeground(new Color(242, 202, 153));
         lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         titlePanel.add(lblTitle);
-        titlePanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        titlePanel.add(Box.createRigidArea(new Dimension(0, 8)));
         titlePanel.add(lblSubtitle);
 
-        add(titlePanel, BorderLayout.NORTH);
+        return titlePanel;
+    }
 
-        // Center panel with buttons - Improved layout
-        JPanel centerPanel = new JPanel(new BorderLayout());
-        centerPanel.setBackground(new Color(240, 248, 255));
-        centerPanel.setBorder(new EmptyBorder(30, 50, 30, 50)); // Aumentado los márgenes
+    private JPanel createMainPanel() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(250, 248, 245));
+        mainPanel.setBorder(new EmptyBorder(30, 50, 20, 50));
 
-        // Panel para los 4 botones principales en grid 2x2
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 25, 25)); // Aumentado el espacio entre botones
-        buttonPanel.setBackground(new Color(240, 248, 255));
+        // Color estándar para el nivel 3 de menús
+        Color level3Color = new Color(242, 202, 153);
 
-        // Custom styled buttons
-        btnModSearch = createStyledButton("Función Modulo", new Color(41, 128, 185));
-        btnSquaredSearch = createStyledButton("Función Cuadrado", new Color(46, 134, 193));
-        btnTruncatedSearch = createStyledButton("Función Truncamiento", new Color(46, 134, 193));
-        btnFoldingSearch = createStyledButton("Función Plegamiento", new Color(46, 134, 193));
+        // Create buttons with level 3 color
+        btnModSearch = createStyledButton("Función Módulo", level3Color);
+        btnSquaredSearch = createStyledButton("Función Cuadrado", level3Color);
+        btnTruncatedSearch = createStyledButton("Función Truncamiento", level3Color);
+        btnFoldingSearch = createStyledButton("Función Plegamiento", level3Color);
+        btnBack = createStyledButton("Volver", new Color(0, 1, 13)); // Color especial para botón volver
 
-        buttonPanel.add(btnModSearch);
-        buttonPanel.add(btnSquaredSearch);
-        buttonPanel.add(btnTruncatedSearch);
-        buttonPanel.add(btnFoldingSearch);
+        // Main buttons grid (2x2)
+        JPanel gridPanel = new JPanel(new GridLayout(2, 2, 20, 20));
+        gridPanel.setBackground(new Color(250, 248, 245));
+        gridPanel.add(btnModSearch);
+        gridPanel.add(btnSquaredSearch);
+        gridPanel.add(btnTruncatedSearch);
+        gridPanel.add(btnFoldingSearch);
 
-        centerPanel.add(buttonPanel, BorderLayout.CENTER);
+        // Back button panel (centered)
+        JPanel backPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        backPanel.setBackground(new Color(250, 248, 245));
+        backPanel.setBorder(new EmptyBorder(20, 0, 20, 0));
 
-        // Panel separado para el botón de volver
-        JPanel backButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        backButtonPanel.setBackground(new Color(240, 248, 255));
-        backButtonPanel.setBorder(new EmptyBorder(20, 0, 0, 0)); // Margen superior
+        // Botón de volver con tamaño más pequeño
+        btnBack.setPreferredSize(new Dimension(120, 40));
+        btnBack.setMinimumSize(new Dimension(120, 40));
+        backPanel.add(btnBack);
 
-        btnBack = createStyledButton("Volver", new Color(231, 76, 60));
-        btnBack.setPreferredSize(new Dimension(150, 40)); // Botón de volver más pequeño
+        // Combine all panels
+        JPanel buttonsContainer = new JPanel(new BorderLayout(0, 0));
+        buttonsContainer.setBackground(new Color(250, 248, 245));
+        buttonsContainer.add(gridPanel, BorderLayout.CENTER);
+        buttonsContainer.add(backPanel, BorderLayout.SOUTH);
 
-        backButtonPanel.add(btnBack);
-        centerPanel.add(backButtonPanel, BorderLayout.SOUTH);
+        mainPanel.add(buttonsContainer, BorderLayout.CENTER);
 
-        add(centerPanel, BorderLayout.CENTER);
+        return mainPanel;
+    }
 
-        // Bottom panel with information
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setBackground(new Color(220, 220, 220));
-        bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+    private JPanel createBottomPanel() {
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        // Footer consistente con los demás menús
+        bottomPanel.setBackground(new Color(245, 240, 235));
+        bottomPanel.setBorder(new EmptyBorder(12, 10, 12, 10));
 
         JLabel lblInfo = new JLabel("© 2025 - Search Algorithms v1.0 Grupo 1");
-        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblInfo.setForeground(new Color(100, 100, 100));
+        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblInfo.setForeground(new Color(39, 89, 80));
 
         bottomPanel.add(lblInfo);
-        add(bottomPanel, BorderLayout.SOUTH);
+        return bottomPanel;
     }
 
     // Method to create a styled button
@@ -99,16 +125,68 @@ public class HashAlgorithmView extends JFrame {
         JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setBackground(backgroundColor);
-        button.setForeground(Color.WHITE);
+
+        // Para el nivel 3 (color claro), usar texto oscuro para mejor contraste
+        if (backgroundColor.equals(new Color(242, 202, 153))) {
+            button.setForeground(new Color(39, 89, 80)); // Texto oscuro para fondo claro
+        } else {
+            button.setForeground(Color.WHITE); // Texto blanco para fondos oscuros
+        }
+
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(200, 50));
 
-        // Añadir un poco de margen interior a los botones
-        button.setMargin(new Insets(10, 15, 10, 15));
+        // Tamaño optimizado para los botones principales
+        button.setPreferredSize(new Dimension(260, 65));
+        button.setMinimumSize(new Dimension(260, 65));
+        button.setMaximumSize(new Dimension(260, 65));
+
+        // Efecto hover consistente con los demás menús
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            Color originalColor = backgroundColor;
+            Color hoverColor = brightenColor(backgroundColor, 20);
+            Color pressedColor = darkenColor(backgroundColor, 15);
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+                button.repaint();
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(originalColor);
+                button.repaint();
+            }
+
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                button.setBackground(pressedColor);
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+            }
+        });
 
         return button;
+    }
+
+    // Métodos auxiliares para manipular colores de forma más sutil
+    private Color brightenColor(Color color, int amount) {
+        int r = Math.min(255, color.getRed() + amount);
+        int g = Math.min(255, color.getGreen() + amount);
+        int b = Math.min(255, color.getBlue() + amount);
+        return new Color(r, g, b);
+    }
+
+    private Color darkenColor(Color color, int amount) {
+        int r = Math.max(0, color.getRed() - amount);
+        int g = Math.max(0, color.getGreen() - amount);
+        int b = Math.max(0, color.getBlue() - amount);
+        return new Color(r, g, b);
     }
 
     // Methods to assign external actions to buttons

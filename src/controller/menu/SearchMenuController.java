@@ -4,12 +4,14 @@ import controller.external_search.HashExpansionController;
 import controller.external_search.PartialExpansionController;
 import view.menu.SearchMenuView;
 import view.menu.MainView;
+import view.menu.ExternalSearchMenuView; // NUEVO: Para navegación de vuelta
 
 public class SearchMenuController {
     private SearchMenuView view;
     private MainView mainView;
+    private ExternalSearchMenuView externalSearchMenuView; // NUEVO: Referencia al menú padre
     private HashExpansionController hashExpansionController;
-    private PartialExpansionController partialExpansionController; // NUEVO
+    private PartialExpansionController partialExpansionController;
 
     public SearchMenuController(SearchMenuView view) {
         this.view = view;
@@ -21,6 +23,13 @@ public class SearchMenuController {
      */
     public void setMainView(MainView mainView) {
         this.mainView = mainView;
+    }
+
+    /**
+     * NUEVO: Establece la referencia al menú de búsqueda externa (menú padre)
+     */
+    public void setExternalSearchMenuView(ExternalSearchMenuView externalSearchMenuView) {
+        this.externalSearchMenuView = externalSearchMenuView;
     }
 
     /**
@@ -40,8 +49,8 @@ public class SearchMenuController {
         // Botón Búsqueda Total -> Hash Expansion
         view.addTotalSearchListener(e -> openTotalSearch());
 
-        // Botón Volver -> MainView
-        view.addBackListener(e -> returnToMainView());
+        // MODIFICADO: Botón Volver -> ExternalSearchMenuView (no MainView)
+        view.addBackListener(e -> returnToParentMenu());
     }
 
     /**
@@ -73,7 +82,7 @@ public class SearchMenuController {
         // Crear una nueva instancia del controlador de hash expansion
         hashExpansionController = new HashExpansionController();
         hashExpansionController.setMainView(mainView);
-        hashExpansionController.setSearchMenuView(view); // NUEVO: Para que regrese a este menú
+        hashExpansionController.setSearchMenuView(view);
 
         // Mostrar la vista si la inicialización fue exitosa
         if (hashExpansionController.getView() != null) {
@@ -85,11 +94,15 @@ public class SearchMenuController {
     }
 
     /**
-     * Regresa al menú principal
+     * MODIFICADO: Regresa al menú padre (ExternalSearchMenuView) en lugar del menú principal
      */
-    private void returnToMainView() {
+    private void returnToParentMenu() {
         view.setVisible(false);
-        if (mainView != null) {
+        if (externalSearchMenuView != null) {
+            // Prioridad: Regresar al menú de búsqueda externa
+            externalSearchMenuView.setVisible(true);
+        } else if (mainView != null) {
+            // Fallback: Si no hay referencia al menú externo, ir al principal
             mainView.setVisible(true);
         }
     }
@@ -113,5 +126,12 @@ public class SearchMenuController {
      */
     public PartialExpansionController getPartialExpansionController() {
         return partialExpansionController;
+    }
+
+    /**
+     * NUEVO: Obtiene la referencia al menú de búsqueda externa
+     */
+    public ExternalSearchMenuView getExternalSearchMenuView() {
+        return externalSearchMenuView;
     }
 }
