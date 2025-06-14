@@ -24,13 +24,12 @@ public class DigitalTreeModel {
      * @return true si la inserción fue exitosa
      */
     public boolean insert(String word, JTextArea area) {
-        if (!arbol.existeClave(word)) {
-            arbol.insertar(word, area);
-            return true;
+        if (arbol.existeClave(word)) {
+            arbol.insertar(word, area); // Solo para mostrar mensaje
+            return false;
         }
-        // si ya existe, llama igual para que genere el mensaje
         arbol.insertar(word, area);
-        return false;
+        return true;
     }
 
     /**
@@ -39,9 +38,11 @@ public class DigitalTreeModel {
      * @param word La palabra a buscar
      * @return true si la palabra existe
      */
-    public boolean search(String word) {
-        return arbol.existeClave(word);
-    }
+    public boolean search(String word, JTextArea area) {
+    return arbol.buscarYNivel(word, area) != -1;
+}
+
+
 
     /**
      * Elimina una palabra del árbol.

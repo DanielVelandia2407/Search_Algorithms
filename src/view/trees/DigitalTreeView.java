@@ -200,16 +200,10 @@ public class DigitalTreeView extends JFrame {
 
     public void updateWordList(String[] words) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Claves en el Trie:\n\n");
-
-        if (words.length == 0) {
-            sb.append("(No hay claves almacenadas)");
-        } else {
-            for (String word : words) {
-                sb.append("• ").append(word).append("\n");
-            }
+        sb.append("Historial de Operaciones:\n\n");
+        for (String word : words) {
+            sb.append(word).append("\n");
         }
-
         txtWordList.setText(sb.toString());
     }
 
