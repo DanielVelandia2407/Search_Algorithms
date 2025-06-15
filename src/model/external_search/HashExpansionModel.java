@@ -28,6 +28,13 @@ public class HashExpansionModel {
     }
 
     public List<String> insertar(int clave) {
+        return insertar(clave, false);
+    }
+    
+    /**
+     * Insertar con opción de forzar inserción aunque supere la densidad
+     */
+    public List<String> insertar(int clave, boolean forzarInsercion) {
         List<String> pasos = new ArrayList<>();
 
         int ocupActual = claves.size() + contarColisiones();
@@ -43,13 +50,13 @@ public class HashExpansionModel {
             return pasos;
         }
 
-        // Verificar si se superará la densidad máxima
-        if (densDesp > densMaxInsert) {
+        // Verificar si se superará la densidad máxima (solo informativo ahora)
+        if (densDesp > densMaxInsert && !forzarInsercion) {
             pasos.add("Se superará la densidad máxima.");
-            return pasos;
+            // No retornamos aquí, continuamos con la inserción
         }
 
-        // Proceder con la inserción
+        // Proceder con la inserción SIEMPRE (a menos que sea clave repetida)
         int col = clave % n;
         if (tabla[0][col] == null) {
             tabla[0][col] = clave;
@@ -127,7 +134,8 @@ public class HashExpansionModel {
         reinicializar();
         densMaxInsert = tmpMax;
         densMinDelete = tmpMin;
-        for (int k : anteriores) insertar(k);
+        // Usamos inserción forzada para evitar verificaciones de densidad durante la reinserción
+        for (int k : anteriores) insertar(k, true);
     }
 
     public void reducir(List<Integer> anteriores) {
@@ -136,7 +144,8 @@ public class HashExpansionModel {
         reinicializar();
         densMaxInsert = tmpMax;
         densMinDelete = tmpMin;
-        for (int k : anteriores) insertar(k);
+        // Usamos inserción forzada para evitar verificaciones de densidad durante la reinserción
+        for (int k : anteriores) insertar(k, true);
     }
 
     private int contarColisiones() {

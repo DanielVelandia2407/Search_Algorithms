@@ -46,8 +46,8 @@ public class HashExpansionController {
         try {
             int n = Integer.parseInt(JOptionPane.showInputDialog("Ingrese N (columnas):"));
             // Valores fijos para densidad
-            double dMax = 0.75;
-            double dMin = 0.25;
+            double dMax = 0.74;
+            double dMin = 0.20;
 
             model = new HashExpansionModel(n, dMax, dMin);
             view = new HashExpansionView();
@@ -108,40 +108,48 @@ public class HashExpansionController {
             return;
         }
 
-        // Primero intentamos insertar la clave
+        // Verificar si se superará la densidad máxima ANTES de insertar
+        int ocupActual = clavesInsertadas.size() + contarColisionesActuales();
+        double densDesp = (double) (ocupActual + 1) / (2 * model.getColumnas());
+        boolean excederaDensidad = densDesp > model.getDensidadMaxInsert();
+
+        // Insertar la clave primero, independientemente de la densidad
         List<String> pasos = model.insertar(clave);
         view.mostrarPasos(pasos.toArray(new String[0]));
-
-        boolean excede = pasos.stream().anyMatch(p -> p.contains("Se superará la densidad máxima."));
-
-        if (excede) {
-            // Si excede la densidad, preguntamos si quiere expandir
-            int r = JOptionPane.showConfirmDialog(
-                    view,
-                    "Se superará la densidad máxima.\n¿Desea expandir la estructura?",
-                    "Expansión total",
-                    JOptionPane.YES_NO_OPTION
-            );
-            if (r == JOptionPane.YES_OPTION) {
-                model.expandir(clavesInsertadas);
-                // Reinsertamos todas las claves anteriores
-                for (int k : new ArrayList<>(clavesInsertadas)) {
-                    List<String> p2 = model.insertar(k);
-                    view.mostrarPasos(p2.toArray(new String[0]));
-                }
-                // Insertamos la nueva clave
-                pasos = model.insertar(clave);
-                view.mostrarPasos(pasos.toArray(new String[0]));
-                clavesInsertadas.add(clave);
-            } else {
-                view.mostrarPasos(new String[]{"Operación cancelada. No se insertó la clave."});
-            }
-        } else {
-            // Si no excede la densidad, simplemente agregamos la clave a la lista
-            clavesInsertadas.add(clave);
-        }
-
+        
+        // Agregar la clave a la lista de insertadas
+        clavesInsertadas.add(clave);
+        
+        // Actualizar la vista con la clave insertada
         view.setTabla(model.getTabla(), model.getColisiones());
+
+        // DESPUÉS de insertar y mostrar, verificar si necesita expansión
+        if (excederaDensidad) {
+            // Mostrar mensaje de que se va a expandir
+            JOptionPane.showMessageDialog(
+                    view,
+                    "Se ha superado la densidad máxima.\nLa estructura se expandirá automáticamente.",
+                    "Expansión automática",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            
+            // Expandir la estructura
+            model.expandir(clavesInsertadas);
+            
+            // Limpiar la lista temporal para reinsertar
+            List<Integer> clavesTemp = new ArrayList<>(clavesInsertadas);
+            clavesInsertadas.clear();
+            
+            // Reinsertar todas las claves en la estructura expandida
+            for (int k : clavesTemp) {
+                List<String> p2 = model.insertar(k);
+                view.mostrarPasos(p2.toArray(new String[0]));
+                clavesInsertadas.add(k);
+            }
+            
+            // Actualizar la vista final
+            view.setTabla(model.getTabla(), model.getColisiones());
+        }
     }
 
     private void onDelete(ActionEvent e) {
@@ -198,5 +206,16 @@ public class HashExpansionController {
         }
 
         view.setTabla(model.getTabla(), model.getColisiones());
+    }
+    
+    /**
+     * Método auxiliar para contar las colisiones actuales
+     */
+    private int contarColisionesActuales() {
+        int total = 0;
+        for (List<Integer> lista : model.getColisiones()) {
+            total += lista.size();
+        }
+        return total;
     }
 }

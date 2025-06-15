@@ -78,7 +78,7 @@ public class ExternalSearchMenuView extends JFrame {
         btnSequentialSearch = createStyledButton("Búsqueda Secuencial", level2Color);
         btnBinarySearch = createStyledButton("Búsqueda Binaria", level2Color);
         btnHashSearch = createStyledButton("Funciones Hash", level2Color);
-        btnDynamicSearch = createStyledButton("Búsqueda Dinámica", level2Color); // NUEVO
+        btnDynamicSearch = createStyledButton("Tablas Dinámicas", level2Color); // NUEVO
         btnBack = createStyledButton("Volver", new Color(0, 1, 13)); // Color especial para botón volver
 
         // Main buttons grid (2x2) - ahora con 4 botones

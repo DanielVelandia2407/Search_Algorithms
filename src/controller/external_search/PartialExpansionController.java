@@ -6,6 +6,7 @@ import view.menu.MainView;
 import view.menu.SearchMenuView;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +20,75 @@ public class PartialExpansionController {
 
     public PartialExpansionController() {
         init();
+    }
+
+    /**
+     * Muestra un aviso informativo de que se va a expandir la estructura
+     */
+    private void mostrarAvisoExpansion() {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(view), "Expansión de Estructura", true);
+        dialog.setLayout(new BorderLayout());
+        
+        // Panel principal con color de fondo beige
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(245, 222, 179)); // Color beige como en la imagen
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Panel del mensaje
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.setBackground(new Color(245, 222, 179));
+        
+        // Icono de advertencia
+        JLabel iconLabel = new JLabel();
+        try {
+            // Usar icono de advertencia del sistema
+            iconLabel.setIcon(UIManager.getIcon("OptionPane.warningIcon"));
+        } catch (Exception ex) {
+            iconLabel.setText("⚠️");
+            iconLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        }
+        iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 15));
+        
+        // Mensaje principal
+        JLabel messageLabel = new JLabel("<html><div style='text-align: center;'>" +
+                "<b>La densidad máxima ha sido superada.</b><br><br>" +
+                "Se procederá a expandir la estructura<br>" +
+                "para mantener un rendimiento óptimo." +
+                "</div></html>");
+        messageLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        messageLabel.setForeground(new Color(139, 69, 19)); // Color marrón oscuro
+        
+        messagePanel.add(iconLabel, BorderLayout.WEST);
+        messagePanel.add(messageLabel, BorderLayout.CENTER);
+        
+        // Panel de botón
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setBackground(new Color(245, 222, 179));
+        
+        // Botón Continuar - estilo azul
+        JButton continueButton = new JButton("Continuar");
+        continueButton.setBackground(new Color(70, 130, 180)); // Azul acero
+        continueButton.setForeground(Color.WHITE);
+        continueButton.setFont(new Font("Arial", Font.BOLD, 12));
+        continueButton.setPreferredSize(new Dimension(120, 35));
+        continueButton.setBorder(BorderFactory.createRaisedBevelBorder());
+        continueButton.setFocusPainted(false);
+        
+        continueButton.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(continueButton);
+        
+        // Ensamblar el diálogo
+        mainPanel.add(messagePanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        dialog.setSize(400, 180);
+        dialog.setLocationRelativeTo(view);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        // Mostrar el diálogo
+        dialog.setVisible(true);
     }
 
     /**
@@ -46,7 +116,7 @@ public class PartialExpansionController {
         try {
             int n = Integer.parseInt(JOptionPane.showInputDialog("Ingrese N (columnas):"));
             // Valores fijos para densidad máxima y mínima
-            double dMax = 0.75;
+            double dMax = 0.74;
             double dMin = 0.25;
 
             model = new PartialExpansionModel(n, dMax, dMin);
@@ -123,22 +193,20 @@ public class PartialExpansionController {
             clavesInsertadas.add(clave);
             view.setTabla(model.getTabla(), model.getColisiones());
 
-            // Luego preguntar si quiere expandir
-            int r = JOptionPane.showConfirmDialog(
-                    view,
-                    "La densidad máxima ha sido superada.\n¿Desea expandir la estructura?",
-                    "Expansión parcial",
-                    JOptionPane.YES_NO_OPTION
-            );
-
-            if (r == JOptionPane.YES_OPTION) {
-                model.expandir(clavesInsertadas);
-                view.mostrarPasos(new String[]{"Expandiendo estructura..."});
-                for (int k : new ArrayList<>(clavesInsertadas)) {
-                    List<String> p2 = model.insertar(k);
-                    view.mostrarPasos(p2.toArray(new String[0]));
-                }
+            // Mostrar aviso de expansión
+            mostrarAvisoExpansion();
+            
+            // Expandir la estructura
+            view.mostrarPasos(new String[]{"Expandiendo estructura..."});
+            model.expandir(clavesInsertadas);
+            
+            // Reinsertar todas las claves
+            for (int k : new ArrayList<>(clavesInsertadas)) {
+                List<String> p2 = model.insertar(k);
+                view.mostrarPasos(p2.toArray(new String[0]));
             }
+            
+            view.mostrarPasos(new String[]{"✅ Expansión completada exitosamente."});
         } else {
             // Inserción normal
             List<String> pasos = model.insertar(clave);
@@ -179,27 +247,25 @@ public class PartialExpansionController {
                 .anyMatch(p -> p.contains("Se caerá por debajo de la densidad mínima."));
 
         if (reducible) {
-            int r = JOptionPane.showConfirmDialog(
-                    view,
-                    "La densidad es baja.\n¿Desea reducir la estructura?",
-                    "Reducción parcial",
-                    JOptionPane.YES_NO_OPTION
-            );
+            // Eliminar clave primero
+            List<String> pasosEliminar = model.eliminar(clave, false);
+            view.mostrarPasos(pasosEliminar.toArray(new String[0]));
+            clavesInsertadas.remove((Integer) clave);
+            view.setTabla(model.getTabla(), model.getColisiones());
 
-            if (r == JOptionPane.YES_OPTION) {
-                // Eliminar clave y reducir
-                List<String> pasosEliminar = model.eliminar(clave, false);
-                view.mostrarPasos(pasosEliminar.toArray(new String[0]));
-                clavesInsertadas.remove((Integer) clave);
-                model.reducir(clavesInsertadas);
-                for (int k : new ArrayList<>(clavesInsertadas)) {
-                    List<String> p2 = model.insertar(k);
-                    view.mostrarPasos(p2.toArray(new String[0]));
-                }
-            } else {
-                view.mostrarPasos(new String[]{"Operación cancelada. No se eliminó la clave."});
-                return;
+            // Mostrar aviso de reducción
+            mostrarAvisoReduccion();
+            
+            // Proceder con la reducción automática
+            view.mostrarPasos(new String[]{"Reduciendo estructura..."});
+            model.reducir(clavesInsertadas);
+            
+            for (int k : new ArrayList<>(clavesInsertadas)) {
+                List<String> p2 = model.insertar(k);
+                view.mostrarPasos(p2.toArray(new String[0]));
             }
+            
+            view.mostrarPasos(new String[]{"✅ Reducción completada exitosamente."});
         } else {
             // Eliminar normalmente
             List<String> pasos = model.eliminar(clave, false);
@@ -208,5 +274,162 @@ public class PartialExpansionController {
         }
 
         view.setTabla(model.getTabla(), model.getColisiones());
+    }
+
+    /**
+     * Muestra un aviso informativo de que se va a reducir la estructura
+     */
+    private void mostrarAvisoReduccion() {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(view), "Reducción de Estructura", true);
+        dialog.setLayout(new BorderLayout());
+        
+        // Panel principal con color de fondo beige
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(245, 222, 179));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Panel del mensaje
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.setBackground(new Color(245, 222, 179));
+        
+        // Icono de información
+        JLabel iconLabel = new JLabel();
+        try {
+            iconLabel.setIcon(UIManager.getIcon("OptionPane.informationIcon"));
+        } catch (Exception ex) {
+            iconLabel.setText("ℹ️");
+            iconLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        }
+        iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 15));
+        
+        // Mensaje principal
+        JLabel messageLabel = new JLabel("<html><div style='text-align: center;'>" +
+                "<b>La densidad ha caído por debajo del mínimo.</b><br><br>" +
+                "Se procederá a reducir la estructura<br>" +
+                "para optimizar el uso de memoria." +
+                "</div></html>");
+        messageLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        messageLabel.setForeground(new Color(139, 69, 19));
+        
+        messagePanel.add(iconLabel, BorderLayout.WEST);
+        messagePanel.add(messageLabel, BorderLayout.CENTER);
+        
+        // Panel de botón
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setBackground(new Color(245, 222, 179));
+        
+        // Botón Continuar - estilo verde
+        JButton continueButton = new JButton("Continuar");
+        continueButton.setBackground(new Color(34, 139, 34)); // Verde
+        continueButton.setForeground(Color.WHITE);
+        continueButton.setFont(new Font("Arial", Font.BOLD, 12));
+        continueButton.setPreferredSize(new Dimension(120, 35));
+        continueButton.setBorder(BorderFactory.createRaisedBevelBorder());
+        continueButton.setFocusPainted(false);
+        
+        continueButton.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(continueButton);
+        
+        // Ensamblar el diálogo
+        mainPanel.add(messagePanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        dialog.setSize(400, 180);
+        dialog.setLocationRelativeTo(view);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        // Mostrar el diálogo
+        dialog.setVisible(true);
+    }
+
+    /**
+     * MÉTODO OBSOLETO - Mantenido para compatibilidad pero no se usa
+     * La reducción ahora es automática con aviso informativo
+     */
+    private int mostrarDialogoReduccion() {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(view), "Reducción de Estructura", true);
+        dialog.setLayout(new BorderLayout());
+        
+        // Panel principal con color de fondo beige
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(245, 222, 179));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Panel del mensaje
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.setBackground(new Color(245, 222, 179));
+        
+        // Icono de información
+        JLabel iconLabel = new JLabel();
+        try {
+            iconLabel.setIcon(UIManager.getIcon("OptionPane.informationIcon"));
+        } catch (Exception ex) {
+            iconLabel.setText("ℹ️");
+            iconLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        }
+        iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 15));
+        
+        // Mensaje principal
+        JLabel messageLabel = new JLabel("<html><div style='text-align: center;'>" +
+                "<b>La densidad es baja.</b><br><br>" +
+                "¿Desea reducir la estructura para<br>" +
+                "optimizar el uso de memoria?" +
+                "</div></html>");
+        messageLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        messageLabel.setForeground(new Color(139, 69, 19));
+        
+        messagePanel.add(iconLabel, BorderLayout.WEST);
+        messagePanel.add(messageLabel, BorderLayout.CENTER);
+        
+        // Panel de botones
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setBackground(new Color(245, 222, 179));
+        
+        // Botón Sí
+        JButton yesButton = new JButton("Sí, Reducir");
+        yesButton.setBackground(new Color(34, 139, 34)); // Verde
+        yesButton.setForeground(Color.WHITE);
+        yesButton.setFont(new Font("Arial", Font.BOLD, 12));
+        yesButton.setPreferredSize(new Dimension(120, 35));
+        yesButton.setBorder(BorderFactory.createRaisedBevelBorder());
+        yesButton.setFocusPainted(false);
+        
+        // Botón No
+        JButton noButton = new JButton("No, Mantener");
+        noButton.setBackground(new Color(105, 105, 105));
+        noButton.setForeground(Color.WHITE);
+        noButton.setFont(new Font("Arial", Font.BOLD, 12));
+        noButton.setPreferredSize(new Dimension(120, 35));
+        noButton.setBorder(BorderFactory.createRaisedBevelBorder());
+        noButton.setFocusPainted(false);
+        
+        final int[] result = {JOptionPane.CANCEL_OPTION};
+        
+        yesButton.addActionListener(e -> {
+            result[0] = JOptionPane.YES_OPTION;
+            dialog.dispose();
+        });
+        
+        noButton.addActionListener(e -> {
+            result[0] = JOptionPane.NO_OPTION;
+            dialog.dispose();
+        });
+        
+        buttonPanel.add(yesButton);
+        buttonPanel.add(noButton);
+        
+        mainPanel.add(messagePanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        dialog.setSize(400, 200);
+        dialog.setLocationRelativeTo(view);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        dialog.setVisible(true);
+        
+        return result[0];
     }
 }

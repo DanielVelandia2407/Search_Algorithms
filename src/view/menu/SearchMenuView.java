@@ -47,7 +47,7 @@ public class SearchMenuView extends JFrame {
         titlePanel.setBackground(new Color(0, 1, 13));
         titlePanel.setBorder(new EmptyBorder(25, 20, 25, 20));
 
-        JLabel lblTitle = new JLabel("Búsqueda Externa");
+        JLabel lblTitle = new JLabel("Tablas dinámicas");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -74,15 +74,17 @@ public class SearchMenuView extends JFrame {
         Color level2Color = new Color(166, 133, 93);
 
         // Create buttons with level 2 color
-        btnPartialSearch = createStyledButton("Búsqueda Parcial", level2Color);
-        btnTotalSearch = createStyledButton("Búsqueda Total", level2Color);
+        btnTotalSearch = createStyledButton("Expansion y reduccion Total", level2Color);
+        btnPartialSearch = createStyledButton("Expansion y reduccion Parcial", level2Color);
+        
         btnBack = createStyledButton("Volver", new Color(0, 1, 13));
 
         // Main buttons panel - usando solo 2 botones en una fila
         JPanel gridPanel = new JPanel(new GridLayout(1, 2, 20, 20));
         gridPanel.setBackground(new Color(250, 248, 245));
-        gridPanel.add(btnPartialSearch);
-        gridPanel.add(btnTotalSearch);
+        gridPanel.add(btnTotalSearch);    // Ahora aparece primero
+        gridPanel.add(btnPartialSearch); // Ahora aparece segundo
+
 
         // Panel contenedor para centrar los botones principales
         JPanel buttonsMainPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
