@@ -5,6 +5,7 @@ import view.colision.ColisionView;
 import view.internal_search.TruncSearchView;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -20,6 +21,7 @@ public class TruncSearchController {
     private int tableSize;
     private int digitLimit = 2;
     private int maxColumns = 1;
+    private String currentFilePath = "src/utilities/datos-hash-truncamiento.txt";
 
     public TruncSearchController(TruncSearchView view) {
         this.view = view;
@@ -112,6 +114,7 @@ public class TruncSearchController {
                 view.setResultMessage("Por favor ingrese una clave para eliminar", false);
             }
         });
+        view.addLoadFromFileListener(e -> loadFromExternalFile());
         view.addBackListener(e -> goBack());
     }
 
@@ -137,7 +140,7 @@ public class TruncSearchController {
         hashTable.clear();
 
         try {
-            File file = new File("src/utilities/datos-hash-truncamiento.txt");
+            File file = new File(currentFilePath);
 
             if (!file.exists()) {
                 System.err.println("Data file does not exist: " + file.getAbsolutePath());
@@ -176,6 +179,131 @@ public class TruncSearchController {
             System.err.println("Error reading the file: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    // Método para cargar archivo externo
+    private void loadFromExternalFile() {
+        JFileChooser fileChooser = new JFileChooser();
+
+        // Configurar el filtro para archivos de texto
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de texto (*.txt)", "txt");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        // Establecer directorio inicial
+        fileChooser.setCurrentDirectory(new File("src/utilities"));
+
+        // Configurar título del diálogo
+        fileChooser.setDialogTitle("Seleccionar archivo de datos");
+
+        int result = fileChooser.showOpenDialog(view);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+
+            try {
+                // Intentar cargar datos del archivo seleccionado
+                List<List<Integer>> newData = loadDataFromExternalFile(selectedFile);
+
+                if (!newData.isEmpty()) {
+                    // Actualizar la tabla hash
+                    hashTable.clear();
+                    hashTable.addAll(newData);
+
+                    // Actualizar el archivo actual y tamaño de tabla
+                    currentFilePath = selectedFile.getAbsolutePath();
+                    tableSize = Math.max(10, hashTable.size());
+
+                    // Asegurar que la tabla tenga exactamente tableSize filas
+                    while (hashTable.size() < tableSize) {
+                        List<Integer> row = new ArrayList<>();
+                        row.add(-1);
+                        hashTable.add(row);
+                    }
+
+                    // Recalcular maxColumns
+                    maxColumns = 1;
+                    for (List<Integer> row : hashTable) {
+                        maxColumns = Math.max(maxColumns, row.size());
+                    }
+
+                    // Mostrar datos en la tabla
+                    displayDataInTable();
+
+                    // Limpiar highlights
+                    view.clearHighlights();
+
+                    view.setResultMessage("Datos cargados desde: " + selectedFile.getName() +
+                            " (" + hashTable.size() + " filas, " + maxColumns + " columnas)", true);
+                } else {
+                    view.setResultMessage("El archivo seleccionado está vacío o no contiene datos válidos", false);
+                }
+
+            } catch (IOException ex) {
+                view.setResultMessage("Error al leer el archivo: " + ex.getMessage(), false);
+            } catch (Exception ex) {
+                view.setResultMessage("Error inesperado al cargar el archivo: " + ex.getMessage(), false);
+            }
+        }
+    }
+
+    // Método para cargar datos desde un archivo externo específico
+    private List<List<Integer>> loadDataFromExternalFile(File file) throws IOException {
+        List<List<Integer>> data = new ArrayList<>();
+        int localMaxColumns = 1;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue; // Saltar líneas vacías y comentarios
+                }
+
+                List<Integer> row = new ArrayList<>();
+
+                // Si la línea contiene corchetes, procesarla como lista
+                if (line.contains("[") && line.contains("]")) {
+                    line = line.replace("[", "").replace("]", "");
+                }
+
+                // Dividir por comas
+                String[] values = line.split(",");
+
+                for (String value : values) {
+                    value = value.trim();
+
+                    if (!value.isEmpty()) {
+                        try {
+                            int num = Integer.parseInt(value);
+                            row.add(num);
+                        } catch (NumberFormatException e) {
+                            // Si no es un número válido, agregar como -1 (vacío)
+                            if (!value.equals("-1")) {
+                                System.err.println("Valor no numérico ignorado: " + value);
+                            } else {
+                                row.add(-1);
+                            }
+                        }
+                    }
+                }
+
+                // Si la fila está vacía, agregar -1
+                if (row.isEmpty()) {
+                    row.add(-1);
+                }
+
+                localMaxColumns = Math.max(localMaxColumns, row.size());
+                data.add(row);
+            }
+        }
+
+        // Actualizar maxColumns
+        maxColumns = localMaxColumns;
+
+        return data;
     }
 
     private void loadOldFormat(String line) {
@@ -806,7 +934,11 @@ public class TruncSearchController {
 
     private void saveDataToFile() {
         try {
-            File file = new File("src/utilities/datos-hash-truncamiento.txt");
+            File file = new File(currentFilePath);
+
+            // Crear directorios padre si no existen
+            file.getParentFile().mkdirs();
+
             try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
                 for (List<Integer> row : hashTable) {
                     writer.println(row.toString());

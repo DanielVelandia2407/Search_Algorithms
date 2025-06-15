@@ -4,7 +4,7 @@ import controller.menu.TreeController;
 import model.trees.HuffmanTreeModel;
 import model.trees.HuffmanTreeModel.TreeNode;
 import view.trees.HuffmanTreeView;
-import view.trees.TreeView;
+import view.menu.TreeView;
 import view.trees.HuffmanTreeView.TreeVisualizer;
 
 import javax.swing.*;

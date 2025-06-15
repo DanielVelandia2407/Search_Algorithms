@@ -9,7 +9,7 @@ import model.trees.ResiduoSimpleModel;
 import model.trees.ResiduoMultipleModel;  // ← Cambiado por la clase de tu amigo
 import model.trees.HuffmanTreeModel;
 import view.menu.AlgorithmMenuView;
-import view.trees.TreeView;
+import view.menu.TreeView;
 import view.trees.DigitalTreeView;
 import view.trees.TrieResiduoSimpleView;
 import view.trees.MultipleResiduoView;     // ← Cambiado por la clase de tu amigo

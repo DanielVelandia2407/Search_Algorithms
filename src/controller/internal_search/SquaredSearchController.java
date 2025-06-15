@@ -5,6 +5,7 @@ import view.colision.ColisionView;
 import view.internal_search.SquaredSearchView;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -18,7 +19,8 @@ public class SquaredSearchController {
     private final List<Integer> dataArray;
     private HashAlgorithmView hashAlgorithmView;
     private int tableSize;
-    private int digitLimit = 2; // NUEVA: Límite de dígitos
+    private int digitLimit = 2;
+    private String currentFilePath = "src/utilities/datos-hash-cuadrado.txt";
 
     public SquaredSearchController(SquaredSearchView view) {
         this.view = view;
@@ -47,14 +49,13 @@ public class SquaredSearchController {
 
         view.addGenerateArrayListener(e -> {
             String input = view.getArraySize();
-            String digitLimitInput = view.getDigitLimit(); // NUEVA: Obtener límite de dígitos
+            String digitLimitInput = view.getDigitLimit();
 
             if (!input.isEmpty() && !digitLimitInput.isEmpty()) {
                 try {
                     int newSize = Integer.parseInt(input);
-                    digitLimit = Integer.parseInt(digitLimitInput); // NUEVA: Establecer límite
+                    digitLimit = Integer.parseInt(digitLimitInput);
 
-                    // NUEVA: Validar rango de dígitos
                     if (digitLimit < 1 || digitLimit > 5) {
                         view.setResultMessage("El límite de dígitos debe estar entre 1 y 5", false);
                         return;
@@ -71,14 +72,13 @@ public class SquaredSearchController {
 
         view.addInsertValueListener(e -> {
             String input = view.getInsertValue();
-            String digitLimitInput = view.getDigitLimit(); // NUEVA: Obtener límite de dígitos
+            String digitLimitInput = view.getDigitLimit();
 
             if (!input.isEmpty() && !digitLimitInput.isEmpty()) {
                 try {
                     int value = Integer.parseInt(input);
-                    digitLimit = Integer.parseInt(digitLimitInput); // NUEVA: Establecer límite
+                    digitLimit = Integer.parseInt(digitLimitInput);
 
-                    // NUEVA: Validar cantidad de dígitos
                     if (!isValidDigitCount(value, digitLimit)) {
                         view.setResultMessage("El valor debe tener exactamente " + digitLimit + " dígito(s)", false);
                         return;
@@ -106,22 +106,24 @@ public class SquaredSearchController {
                 view.setResultMessage("Por favor ingrese un valor para eliminar", false);
             }
         });
+
+        view.addLoadFromFileListener(e -> loadFromExternalFile());
         view.addBackListener(e -> goBack());
     }
 
-    // NUEVA: Validar cantidad de dígitos
+    // Validar cantidad de dígitos
     private boolean isValidDigitCount(int value, int digitLimit) {
         String valueStr = String.valueOf(Math.abs(value));
         return valueStr.length() == digitLimit;
     }
 
-    // NUEVA: Obtener valor mínimo basado en el límite de dígitos
+    // Obtener valor mínimo basado en el límite de dígitos
     private int getMinValue(int digitLimit) {
         if (digitLimit == 1) return 0;
         return (int) Math.pow(10, digitLimit - 1);
     }
 
-    // NUEVA: Obtener valor máximo basado en el límite de dígitos
+    // Obtener valor máximo basado en el límite de dígitos
     private int getMaxValue(int digitLimit) {
         return (int) Math.pow(10, digitLimit) - 1;
     }
@@ -130,7 +132,7 @@ public class SquaredSearchController {
         dataArray.clear();
 
         try {
-            File file = new File("src/utilities/datos-hash-cuadrado.txt");
+            File file = new File(currentFilePath);
 
             if (!file.exists()) {
                 System.err.println("El archivo de datos no existe: " + file.getAbsolutePath());
@@ -171,6 +173,109 @@ public class SquaredSearchController {
                 dataArray.add(-1);
             }
         }
+    }
+
+    // Método para cargar archivo externo
+    private void loadFromExternalFile() {
+        JFileChooser fileChooser = new JFileChooser();
+
+        // Configurar el filtro para archivos de texto
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de texto (*.txt)", "txt");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        // Establecer directorio inicial
+        fileChooser.setCurrentDirectory(new File("src/utilities"));
+
+        // Configurar título del diálogo
+        fileChooser.setDialogTitle("Seleccionar archivo de datos");
+
+        int result = fileChooser.showOpenDialog(view);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+
+            try {
+                // Intentar cargar datos del archivo seleccionado
+                List<Integer> newData = loadDataFromExternalFile(selectedFile);
+
+                if (!newData.isEmpty()) {
+                    // Actualizar el array de datos
+                    dataArray.clear();
+                    dataArray.addAll(newData);
+
+                    // Actualizar el archivo actual y tamaño de tabla
+                    currentFilePath = selectedFile.getAbsolutePath();
+                    tableSize = Math.max(10, dataArray.size());
+
+                    // Asegurar que la tabla tenga exactamente tableSize elementos
+                    while (dataArray.size() < tableSize) {
+                        dataArray.add(-1);
+                    }
+
+                    // Mostrar datos en la tabla
+                    displayDataInTable();
+
+                    // Limpiar highlights
+                    view.clearHighlights();
+
+                    view.setResultMessage("Datos cargados desde: " + selectedFile.getName() +
+                            " (" + dataArray.size() + " elementos)", true);
+                } else {
+                    view.setResultMessage("El archivo seleccionado está vacío o no contiene datos válidos", false);
+                }
+
+            } catch (IOException ex) {
+                view.setResultMessage("Error al leer el archivo: " + ex.getMessage(), false);
+            } catch (Exception ex) {
+                view.setResultMessage("Error inesperado al cargar el archivo: " + ex.getMessage(), false);
+            }
+        }
+    }
+
+    // Método para cargar datos desde un archivo externo específico
+    private List<Integer> loadDataFromExternalFile(File file) throws IOException {
+        List<Integer> data = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue; // Saltar líneas vacías y comentarios
+                }
+
+                // Si la línea contiene corchetes, procesarla como array
+                if (line.contains("[") && line.contains("]")) {
+                    line = line.replace("[", "").replace("]", "");
+                }
+
+                // Dividir por comas, espacios o ambos
+                String[] values = line.split("[,\\s]+");
+
+                for (String value : values) {
+                    value = value.trim();
+
+                    if (!value.isEmpty()) {
+                        try {
+                            int num = Integer.parseInt(value);
+                            data.add(num);
+                        } catch (NumberFormatException e) {
+                            // Si no es un número válido, agregar como -1 (vacío)
+                            if (!value.equals("-1")) {
+                                System.err.println("Valor no numérico ignorado: " + value);
+                            } else {
+                                data.add(-1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return data;
     }
 
     private void createHashTable() {
@@ -239,7 +344,7 @@ public class SquaredSearchController {
         return hashValue % tableSize;
     }
 
-    // MODIFICADA: Método de búsqueda que decide entre normal o animada
+    // Método de búsqueda que decide entre normal o animada
     private void performSearch() {
         if (view.isVisualizationEnabled()) {
             performAnimatedSearch();
@@ -248,7 +353,7 @@ public class SquaredSearchController {
         }
     }
 
-    // NUEVA: Búsqueda sin animación (método original mejorado)
+    // Búsqueda sin animación
     private void performNormalSearch() {
         String input = view.getSearchValue();
 
@@ -292,7 +397,7 @@ public class SquaredSearchController {
         }
     }
 
-    // NUEVA: Búsqueda con animación visual
+    // Búsqueda con animación visual
     private void performAnimatedSearch() {
         String input = view.getSearchValue();
 
@@ -466,17 +571,10 @@ public class SquaredSearchController {
         for (int i = 0; i < newSize; i++) {
             dataArray.add(-1);
         }
-        try {
-            File file = new File("src/utilities/datos-hash-cuadrado.txt");
-            try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
-                writer.println(dataArray.toString());
-            }
-        } catch (IOException e) {
-            System.err.println("Error al escribir en el archivo: " + e.getMessage());
-            e.printStackTrace();
-        }
 
-        // NUEVA: Mostrar rango permitido
+        saveDataToFile();
+
+        // Mostrar rango permitido
         int minValue = getMinValue(digitLimit);
         int maxValue = getMaxValue(digitLimit);
         view.setResultMessage("Tabla hash generada. Rango permitido: " + minValue + " - " + maxValue, true);
@@ -598,7 +696,11 @@ public class SquaredSearchController {
 
     private void saveDataToFile() {
         try {
-            File file = new File("src/utilities/datos-hash-cuadrado.txt");
+            File file = new File(currentFilePath);
+
+            // Crear directorios padre si no existen
+            file.getParentFile().mkdirs();
+
             try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
                 writer.println(dataArray.toString());
             }

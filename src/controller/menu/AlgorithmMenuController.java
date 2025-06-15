@@ -7,7 +7,7 @@ import view.menu.MainView;
 import view.internal_search.SequentialSearchView;
 import view.internal_search.BinarySearchView;
 import view.menu.HashAlgorithmView;
-import view.trees.TreeView;
+import view.menu.TreeView;
 
 /**
  * Controller for the Algorithm Menu View
