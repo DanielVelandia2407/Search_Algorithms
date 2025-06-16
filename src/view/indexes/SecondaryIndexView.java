@@ -9,6 +9,7 @@ public class SecondaryIndexView extends JFrame {
     public JTextField txtDato = new JTextField(10);
     public JTextField txtIndice = new JTextField(10);
     public JButton btnCalcular = new JButton("Calcular");
+    public JButton btnVolver = new JButton("Volver al Menú");
 
 
     public JTextArea areaResultados = new JTextArea(8, 40);
@@ -38,6 +39,12 @@ public class SecondaryIndexView extends JFrame {
         btnCalcular.setForeground(Color.WHITE);
         btnCalcular.setFocusPainted(false);
         btnCalcular.setFont(new Font("SansSerif", Font.BOLD, 14));
+
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2; panelEntrada.add(btnVolver, gbc);
+        btnVolver.setBackground(new Color(0x8B4513));
+        btnVolver.setForeground(Color.WHITE);
+        btnVolver.setFocusPainted(false);
+        btnVolver.setFont(new Font("SansSerif", Font.BOLD, 14));
 
 
 

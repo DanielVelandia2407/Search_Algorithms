@@ -48,6 +48,13 @@ public class SecondaryIndexController {
                 }
             }
         });
+
+        vista.btnVolver.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                volverAlMenu();
+            }
+        });
     }
 
     /**
