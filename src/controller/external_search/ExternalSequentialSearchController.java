@@ -119,11 +119,13 @@ public class ExternalSequentialSearchController {
             }
         });
 
+        // NUEVA FUNCIONALIDAD: Listener para cargar archivo externo
         view.addLoadFromFileListener(e -> loadFromExternalFile());
+
         view.addBackListener(e -> goBack());
     }
 
-    // Método para cargar archivo externo
+    // NUEVO MÉTODO: Cargar archivo externo
     private void loadFromExternalFile() {
         JFileChooser fileChooser = new JFileChooser();
 
@@ -136,7 +138,7 @@ public class ExternalSequentialSearchController {
         fileChooser.setCurrentDirectory(new File("src/utilities"));
 
         // Configurar título del diálogo
-        fileChooser.setDialogTitle("Seleccionar archivo de datos de bloques");
+        fileChooser.setDialogTitle("Seleccionar archivo de datos de búsqueda secuencial externa");
 
         int result = fileChooser.showOpenDialog(view);
 
@@ -187,7 +189,7 @@ public class ExternalSequentialSearchController {
         }
     }
 
-    // Método para cargar datos desde un archivo externo específico
+    // NUEVO MÉTODO: Cargar datos desde un archivo externo específico
     private List<List<Integer>> loadDataFromExternalFile(File file) throws IOException {
         List<List<Integer>> newBlocks = new ArrayList<>();
 
@@ -291,25 +293,51 @@ public class ExternalSequentialSearchController {
     }
 
     private void displayDataInTable() {
-        // Create data for table with block and record columns
-        Object[][] tableData = new Object[blocks.size()][blockSize + 1];
+        // Create data for table with block, min-max range, and record columns
+        Object[][] tableData = new Object[blocks.size()][blockSize + 2];
 
         for (int i = 0; i < blocks.size(); i++) {
             List<Integer> block = blocks.get(i);
             tableData[i][0] = "Bloque " + (i + 1); // Block identifier
 
+            // Calculate min-max range for the block
+            String range = calculateBlockRange(block);
+            tableData[i][1] = range;
+
             // Fill records in the block
             for (int j = 0; j < blockSize; j++) {
                 if (j < block.size() && block.get(j) != -1) {
-                    tableData[i][j + 1] = block.get(j);
+                    tableData[i][j + 2] = block.get(j);
                 } else {
-                    tableData[i][j + 1] = ""; // Empty slot
+                    tableData[i][j + 2] = ""; // Empty slot
                 }
             }
         }
 
         // Set data to table
         view.setTableData(tableData);
+    }
+
+    private String calculateBlockRange(List<Integer> block) {
+        List<Integer> validValues = new ArrayList<>();
+        for (Integer value : block) {
+            if (value != null && value != -1) {
+                validValues.add(value);
+            }
+        }
+
+        if (validValues.isEmpty()) {
+            return "Vacío";
+        }
+
+        int min = Collections.min(validValues);
+        int max = Collections.max(validValues);
+
+        if (min == max) {
+            return String.valueOf(min);
+        }
+
+        return min + "-" + max;
     }
 
     private void performSearch() {
@@ -334,6 +362,7 @@ public class ExternalSequentialSearchController {
             // Reset counters and highlights
             blockAccessCount = 0;
             view.setBlockAccessCount(blockAccessCount);
+            view.setSearchPhase("Inactiva");
             view.clearHighlights();
 
             // Perform external sequential search
@@ -368,6 +397,7 @@ public class ExternalSequentialSearchController {
             // Reset counters and highlights
             blockAccessCount = 0;
             view.setBlockAccessCount(blockAccessCount);
+            view.setSearchPhase("Iniciando búsqueda optimizada");
             view.clearHighlights();
 
             // Create SwingWorker for animation
@@ -377,18 +407,49 @@ public class ExternalSequentialSearchController {
                     for (int blockIndex = 0; blockIndex < blocks.size(); blockIndex++) {
                         List<Integer> block = blocks.get(blockIndex);
 
-                        // Simulate block access
+                        // Simulate block access for range check
                         blockAccessCount++;
-                        publish(new SearchProgress(blockIndex, -1, blockAccessCount, false));
-                        Thread.sleep(500); // Pause to show block access
+                        publish(new SearchProgress(blockIndex, -1, blockAccessCount, false, "Verificando rango"));
+                        Thread.sleep(400); // Pause to show range verification
+
+                        // Get the range of the current block
+                        BlockRange range = getBlockRange(block);
+
+                        // Skip empty blocks
+                        if (range.isEmpty()) {
+                            publish(new SearchProgress(blockIndex, -1, blockAccessCount, false, "Bloque vacío - saltando"));
+                            Thread.sleep(200);
+                            continue;
+                        }
+
+                        // OPTIMIZACIÓN: Si el target es mayor que el máximo del bloque, continuar al siguiente
+                        if (valueToSearch > range.max) {
+                            publish(new SearchProgress(blockIndex, -1, blockAccessCount, false,
+                                    "Target > Max (" + range.max + ") - saltando"));
+                            Thread.sleep(300);
+                            continue; // Skip this block entirely
+                        }
+
+                        // OPTIMIZACIÓN: Si el target es menor que el mínimo del bloque, no está en ningún bloque posterior
+                        if (valueToSearch < range.min) {
+                            publish(new SearchProgress(blockIndex, -1, blockAccessCount, false,
+                                    "Target < Min (" + range.min + ") - terminando búsqueda"));
+                            Thread.sleep(300);
+                            break; // No need to check further blocks
+                        }
+
+                        // El target podría estar en este bloque, buscar dentro del bloque
+                        publish(new SearchProgress(blockIndex, -1, blockAccessCount, false,
+                                "Rango válido [" + range.min + "-" + range.max + "] - buscando dentro"));
+                        Thread.sleep(300);
 
                         // Search within the block
                         for (int recordIndex = 0; recordIndex < block.size(); recordIndex++) {
                             if (block.get(recordIndex) == -1) continue; // Skip empty slots
 
                             // Publish current record being examined
-                            publish(new SearchProgress(blockIndex, recordIndex, blockAccessCount, false));
-                            Thread.sleep(300); // Pause to show record examination
+                            publish(new SearchProgress(blockIndex, recordIndex, blockAccessCount, false, "Examinando registro"));
+                            Thread.sleep(250); // Pause to show record examination
 
                             if (block.get(recordIndex) == valueToSearch) {
                                 return new SearchResult(true, blockIndex, recordIndex);
@@ -403,6 +464,7 @@ public class ExternalSequentialSearchController {
                     SearchProgress progress = chunks.get(chunks.size() - 1);
                     view.setBlockAccessCount(progress.blockAccessCount);
                     view.setCurrentBlock("Bloque " + (progress.blockIndex + 1));
+                    view.setSearchPhase(progress.phase);
                     view.highlightBlockAccess(progress.blockIndex, progress.recordIndex);
                 }
 
@@ -416,10 +478,12 @@ public class ExternalSequentialSearchController {
                             view.setResultMessage("Clave " + valueToSearch + " encontrada en Bloque " +
                                     (result.blockIndex + 1) + ", Registro " + (result.recordIndex + 1) +
                                     ". Accesos a bloques: " + blockAccessCount, true);
+                            view.setSearchPhase("Encontrada");
                         } else {
                             view.clearHighlights();
                             view.setResultMessage("Clave " + valueToSearch + " no encontrada. Accesos a bloques: " +
                                     blockAccessCount, false);
+                            view.setSearchPhase("No encontrada");
                         }
                         view.setCurrentBlock("Ninguno");
                     } catch (Exception e) {
@@ -435,13 +499,32 @@ public class ExternalSequentialSearchController {
         }
     }
 
-    // External sequential search algorithm implementation
+    // External sequential search algorithm implementation with range optimization
     private SearchResult externalSequentialSearch(int target) {
         for (int blockIndex = 0; blockIndex < blocks.size(); blockIndex++) {
             List<Integer> block = blocks.get(blockIndex);
-            blockAccessCount++; // Increment block access counter
+            blockAccessCount++; // Increment block access counter for range check
 
-            // Search within the current block
+            // Get the range of the current block
+            BlockRange range = getBlockRange(block);
+
+            // Skip empty blocks
+            if (range.isEmpty()) {
+                continue;
+            }
+
+            // OPTIMIZACIÓN: Si el target es mayor que el máximo del bloque, continuar al siguiente
+            if (target > range.max) {
+                continue; // Skip this block entirely
+            }
+
+            // OPTIMIZACIÓN: Si el target es menor que el mínimo del bloque, no está en ningún bloque posterior
+            // (asumiendo que los bloques están ordenados)
+            if (target < range.min) {
+                break; // No need to check further blocks
+            }
+
+            // El target podría estar en este bloque, buscar dentro del bloque
             for (int recordIndex = 0; recordIndex < block.size(); recordIndex++) {
                 if (block.get(recordIndex) != -1 && block.get(recordIndex) == target) {
                     return new SearchResult(true, blockIndex, recordIndex);
@@ -449,6 +532,22 @@ public class ExternalSequentialSearchController {
             }
         }
         return new SearchResult(false, -1, -1);
+    }
+
+    // Helper method to get block range
+    private BlockRange getBlockRange(List<Integer> block) {
+        List<Integer> validValues = new ArrayList<>();
+        for (Integer value : block) {
+            if (value != null && value != -1) {
+                validValues.add(value);
+            }
+        }
+
+        if (validValues.isEmpty()) {
+            return new BlockRange(true);
+        }
+
+        return new BlockRange(Collections.min(validValues), Collections.max(validValues));
     }
 
     private void generateNewBlocks(int blockCount) {
@@ -474,6 +573,7 @@ public class ExternalSequentialSearchController {
         view.setResultMessage("Bloques generados. Rango permitido: " + minValue + " - " + maxValue, true);
         view.setBlockAccessCount(0);
         view.setCurrentBlock("Ninguno");
+        view.setSearchPhase("Inactiva");
     }
 
     public void insertValue(int value) throws IllegalArgumentException {
@@ -504,6 +604,9 @@ public class ExternalSequentialSearchController {
             // Sort all blocks to maintain order
             sortBlocks();
             view.setResultMessage("Clave " + value + " insertada correctamente", true);
+
+            // NUEVO: Actualizar automáticamente la tabla
+            displayDataInTable();
         } else {
             view.setResultMessage("El archivo está lleno", false);
         }
@@ -528,6 +631,9 @@ public class ExternalSequentialSearchController {
             // Sort blocks after deletion
             sortBlocks();
             view.setResultMessage("Clave " + value + " eliminada correctamente", true);
+
+            // NUEVO: Actualizar automáticamente la tabla
+            displayDataInTable();
         } else {
             view.setResultMessage("Clave " + value + " no encontrada en el archivo", false);
         }
@@ -597,12 +703,38 @@ public class ExternalSequentialSearchController {
         int recordIndex;
         int blockAccessCount;
         boolean found;
+        String phase;
 
-        SearchProgress(int blockIndex, int recordIndex, int blockAccessCount, boolean found) {
+        SearchProgress(int blockIndex, int recordIndex, int blockAccessCount, boolean found, String phase) {
             this.blockIndex = blockIndex;
             this.recordIndex = recordIndex;
             this.blockAccessCount = blockAccessCount;
             this.found = found;
+            this.phase = phase;
+        }
+
+        SearchProgress(int blockIndex, int recordIndex, int blockAccessCount, boolean found) {
+            this(blockIndex, recordIndex, blockAccessCount, found, "Buscando");
+        }
+    }
+
+    // Helper class for block range
+    private static class BlockRange {
+        int min, max;
+        boolean empty;
+
+        BlockRange(boolean empty) {
+            this.empty = empty;
+        }
+
+        BlockRange(int min, int max) {
+            this.min = min;
+            this.max = max;
+            this.empty = false;
+        }
+
+        boolean isEmpty() {
+            return empty;
         }
     }
 

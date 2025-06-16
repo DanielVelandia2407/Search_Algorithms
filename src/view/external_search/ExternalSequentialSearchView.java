@@ -13,7 +13,7 @@ public class ExternalSequentialSearchView extends JFrame {
     private JButton btnGenerateBlocks;
     private JButton btnDeleteValue;
     private JButton btnInsertValue;
-    private JButton btnLoadFromFile;
+    private JButton btnLoadFromFile; // NUEVO BOTÓN
     private JButton btnBack;
     private JTable blocksTable;
     private DefaultTableModel tableModel;
@@ -27,13 +27,14 @@ public class ExternalSequentialSearchView extends JFrame {
     private JLabel lblResult;
     private JLabel lblBlockAccessCount;
     private JLabel lblCurrentBlock;
+    private JLabel lblSearchPhase; // NUEVA ETIQUETA
     private int currentSearchBlockIndex = -1;
     private int currentSearchRecordIndex = -1;
     private int foundBlockIndex = -1;
     private int foundRecordIndex = -1;
     private int blockAccessCount = 0;
 
-    // Paleta de colores personalizada
+    // NUEVA PALETA DE COLORES (igual que la búsqueda binaria)
     private static final Color DARK_NAVY = new Color(0, 1, 13);      // #0001DD
     private static final Color WARM_BROWN = new Color(115, 73, 22);   // #734916
     private static final Color LIGHT_BROWN = new Color(166, 133, 93); // #A6855D
@@ -44,7 +45,7 @@ public class ExternalSequentialSearchView extends JFrame {
     public ExternalSequentialSearchView() {
         // Basic window configuration
         setTitle("Búsqueda Secuencial Externa");
-        setSize(900, 1100);
+        setSize(950, 1150);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(15, 15));
@@ -63,7 +64,7 @@ public class ExternalSequentialSearchView extends JFrame {
         lblTitle.setForeground(SOFT_WHITE);
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lblSubtitle = new JLabel("Simulación con manejo de bloques de disco");
+        JLabel lblSubtitle = new JLabel("Búsqueda secuencial por bloques con simulación de disco");
         lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         lblSubtitle.setForeground(CREAM);
         lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -80,11 +81,11 @@ public class ExternalSequentialSearchView extends JFrame {
         centerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         // Status panel for block access information
-        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel statusPanel = new JPanel(new GridLayout(2, 2, 10, 5));
         statusPanel.setBackground(CREAM);
         statusPanel.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(WARM_BROWN, 2),
-                "Estado de la Búsqueda",
+                "Estado de la Búsqueda Secuencial Optimizada",
                 0, 0, new Font("Segoe UI", Font.BOLD, 14), VERY_DARK
         ));
 
@@ -96,9 +97,18 @@ public class ExternalSequentialSearchView extends JFrame {
         lblCurrentBlock.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblCurrentBlock.setForeground(WARM_BROWN);
 
+        lblSearchPhase = new JLabel("Fase: Inactiva");
+        lblSearchPhase.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblSearchPhase.setForeground(LIGHT_BROWN);
+
+        JLabel lblAlgorithmInfo = new JLabel("Algoritmo: Búsqueda secuencial con optimización de rangos");
+        lblAlgorithmInfo.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblAlgorithmInfo.setForeground(VERY_DARK);
+
         statusPanel.add(lblBlockAccessCount);
-        statusPanel.add(Box.createHorizontalStrut(30));
         statusPanel.add(lblCurrentBlock);
+        statusPanel.add(lblSearchPhase);
+        statusPanel.add(lblAlgorithmInfo);
 
         centerPanel.add(statusPanel, BorderLayout.NORTH);
 
@@ -107,7 +117,7 @@ public class ExternalSequentialSearchView extends JFrame {
         tablePanel.setBackground(CREAM);
 
         // Create table model with columns for blocks
-        String[] columnNames = {"Bloque", "Reg 1", "Reg 2", "Reg 3", "Reg 4", "Reg 5"};
+        String[] columnNames = {"Bloque", "Min-Max", "Reg 1", "Reg 2", "Reg 3", "Reg 4", "Reg 5"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -117,12 +127,19 @@ public class ExternalSequentialSearchView extends JFrame {
 
         blocksTable = new JTable(tableModel);
         blocksTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        blocksTable.setRowHeight(30);
+        blocksTable.setRowHeight(35);
         blocksTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         blocksTable.getTableHeader().setBackground(WARM_BROWN);
         blocksTable.getTableHeader().setForeground(SOFT_WHITE);
 
-        // Custom cell renderer for highlighting blocks and records
+        // Set column widths
+        blocksTable.getColumnModel().getColumn(0).setPreferredWidth(80);  // Bloque
+        blocksTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Min-Max
+        for (int i = 2; i < 7; i++) {
+            blocksTable.getColumnModel().getColumn(i).setPreferredWidth(80); // Registros
+        }
+
+        // ACTUALIZADO: Custom cell renderer con nueva paleta de colores
         blocksTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -130,29 +147,29 @@ public class ExternalSequentialSearchView extends JFrame {
                 Component c = super.getTableCellRendererComponent(table, value,
                         isSelected, hasFocus, row, column);
 
-                // Highlight current search block
-                if (row == currentSearchBlockIndex && currentSearchBlockIndex != -1) {
-                    if (column == 0) {
-                        c.setBackground(new Color(255, 218, 185)); // Cream más intenso para bloque siendo accedido
-                        c.setForeground(VERY_DARK);
-                    } else if (column == currentSearchRecordIndex + 1 && currentSearchRecordIndex != -1) {
-                        c.setBackground(new Color(255, 235, 205)); // Cream claro para registro actual
-                        c.setForeground(VERY_DARK);
-                    } else {
-                        c.setBackground(LIGHT_BROWN); // Light brown para el resto del bloque
-                        c.setForeground(SOFT_WHITE);
-                    }
-                }
-                // Highlight found item
-                else if (row == foundBlockIndex && foundBlockIndex != -1) {
-                    if (column == 0) {
+                // Found item highlighting (highest priority)
+                if (row == foundBlockIndex && foundBlockIndex != -1) {
+                    if (column == 0 || column == 1) {
                         c.setBackground(new Color(144, 238, 144)); // Verde suave para bloque encontrado
                         c.setForeground(VERY_DARK);
-                    } else if (column == foundRecordIndex + 1 && foundRecordIndex != -1) {
+                    } else if (column == foundRecordIndex + 2 && foundRecordIndex != -1) {
                         c.setBackground(new Color(152, 251, 152)); // Verde claro para registro encontrado
                         c.setForeground(VERY_DARK);
                     } else {
-                        c.setBackground(new Color(200, 255, 200)); // Verde muy claro para el resto del bloque
+                        c.setBackground(new Color(200, 255, 200)); // Verde muy claro para el bloque
+                        c.setForeground(VERY_DARK);
+                    }
+                }
+                // Current search highlighting
+                else if (row == currentSearchBlockIndex && currentSearchBlockIndex != -1) {
+                    if (column == 0 || column == 1) {
+                        c.setBackground(new Color(255, 218, 185)); // Cream más intenso para bloque actual
+                        c.setForeground(VERY_DARK);
+                    } else if (column == currentSearchRecordIndex + 2 && currentSearchRecordIndex != -1) {
+                        c.setBackground(new Color(255, 235, 205)); // Cream claro para registro actual
+                        c.setForeground(VERY_DARK);
+                    } else {
+                        c.setBackground(new Color(255, 245, 225)); // Cream muy claro para el resto del bloque
                         c.setForeground(VERY_DARK);
                     }
                 }
@@ -160,13 +177,13 @@ public class ExternalSequentialSearchView extends JFrame {
                     c.setBackground(SOFT_WHITE);
                     c.setForeground(VERY_DARK);
 
-                    // Color de fondo para bloques alternos
+                    // Alternate row colors for better visibility
                     if (row % 2 == 1) {
                         c.setBackground(new Color(245, 245, 245));
                     }
                 }
 
-                // Centrar el texto
+                // Center text alignment
                 setHorizontalAlignment(SwingConstants.CENTER);
 
                 return c;
@@ -175,7 +192,7 @@ public class ExternalSequentialSearchView extends JFrame {
 
         JScrollPane scrollPane = new JScrollPane(blocksTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(WARM_BROWN, 2));
-        scrollPane.setPreferredSize(new Dimension(800, 300));
+        scrollPane.setPreferredSize(new Dimension(900, 350));
 
         tablePanel.add(scrollPane, BorderLayout.CENTER);
         centerPanel.add(tablePanel, BorderLayout.CENTER);
@@ -233,7 +250,7 @@ public class ExternalSequentialSearchView extends JFrame {
         verticalControlPanel.add(blockConfigPanel);
         verticalControlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Panel to load from file
+        // NUEVO: Panel to load from file
         JPanel loadFilePanel = createControlPanel();
         JLabel lblLoadFile = new JLabel("Cargar datos desde archivo:");
         lblLoadFile.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -348,7 +365,7 @@ public class ExternalSequentialSearchView extends JFrame {
         bottomPanel.setBackground(LIGHT_BROWN);
         bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel lblInfo = new JLabel("© 2025 - External Search Algorithms v1.0");
+        JLabel lblInfo = new JLabel("© 2025 - External Sequential Search Algorithms v1.0");
         lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblInfo.setForeground(SOFT_WHITE);
 
@@ -419,6 +436,7 @@ public class ExternalSequentialSearchView extends JFrame {
         btnDeleteValue.addActionListener(listener);
     }
 
+    // NUEVO: Listener para cargar archivo
     public void addLoadFromFileListener(ActionListener listener) {
         btnLoadFromFile.addActionListener(listener);
     }
@@ -469,6 +487,10 @@ public class ExternalSequentialSearchView extends JFrame {
 
     public void setCurrentBlock(String blockInfo) {
         lblCurrentBlock.setText("Bloque actual: " + blockInfo);
+    }
+
+    public void setSearchPhase(String phase) {
+        lblSearchPhase.setText("Fase: " + phase);
     }
 
     public void setTableData(Object[][] data) {
