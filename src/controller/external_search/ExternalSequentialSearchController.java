@@ -4,6 +4,7 @@ import view.external_search.ExternalSequentialSearchView;
 import view.menu.ExternalSearchMenuView;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -12,10 +13,11 @@ public class ExternalSequentialSearchController {
 
     private ExternalSequentialSearchView view;
     private ExternalSearchMenuView menuView;
-    private List<List<Integer>> blocks; // Lista de bloques, cada bloque contiene una lista de registros
-    private int blockSize = 5; // Registros por bloque por defecto
-    private int digitLimit = 2; // Límite de dígitos por defecto
-    private int blockAccessCount = 0; // Contador de accesos a bloques
+    private List<List<Integer>> blocks;
+    private int blockSize = 5;
+    private int digitLimit = 2;
+    private int blockAccessCount = 0;
+    private String currentFilePath = "src/utilities/datos-busqueda-secuencial-externa.txt";
 
     public ExternalSequentialSearchController(ExternalSequentialSearchView view) {
         this.view = view;
@@ -117,7 +119,123 @@ public class ExternalSequentialSearchController {
             }
         });
 
+        view.addLoadFromFileListener(e -> loadFromExternalFile());
         view.addBackListener(e -> goBack());
+    }
+
+    // Método para cargar archivo externo
+    private void loadFromExternalFile() {
+        JFileChooser fileChooser = new JFileChooser();
+
+        // Configurar el filtro para archivos de texto
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de texto (*.txt)", "txt");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        // Establecer directorio inicial
+        fileChooser.setCurrentDirectory(new File("src/utilities"));
+
+        // Configurar título del diálogo
+        fileChooser.setDialogTitle("Seleccionar archivo de datos de bloques");
+
+        int result = fileChooser.showOpenDialog(view);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+
+            try {
+                // Intentar cargar datos del archivo seleccionado
+                List<List<Integer>> newBlocks = loadDataFromExternalFile(selectedFile);
+
+                if (!newBlocks.isEmpty()) {
+                    // Actualizar los bloques de datos
+                    blocks.clear();
+                    blocks.addAll(newBlocks);
+
+                    // Actualizar el archivo actual
+                    currentFilePath = selectedFile.getAbsolutePath();
+
+                    // Mostrar datos en la tabla
+                    displayDataInTable();
+
+                    // Limpiar highlights y contadores
+                    view.clearHighlights();
+                    view.setBlockAccessCount(0);
+                    view.setCurrentBlock("Ninguno");
+
+                    // Contar total de registros válidos
+                    int totalRecords = 0;
+                    for (List<Integer> block : blocks) {
+                        for (Integer value : block) {
+                            if (value != null && value != -1) {
+                                totalRecords++;
+                            }
+                        }
+                    }
+
+                    view.setResultMessage("Datos cargados desde: " + selectedFile.getName() +
+                            " (" + blocks.size() + " bloques, " + totalRecords + " registros)", true);
+                } else {
+                    view.setResultMessage("El archivo seleccionado está vacío o no contiene datos válidos", false);
+                }
+
+            } catch (IOException ex) {
+                view.setResultMessage("Error al leer el archivo: " + ex.getMessage(), false);
+            } catch (Exception ex) {
+                view.setResultMessage("Error inesperado al cargar el archivo: " + ex.getMessage(), false);
+            }
+        }
+    }
+
+    // Método para cargar datos desde un archivo externo específico
+    private List<List<Integer>> loadDataFromExternalFile(File file) throws IOException {
+        List<List<Integer>> newBlocks = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+
+                if (line.isEmpty()) {
+                    continue; // Saltar líneas vacías
+                }
+
+                // Si la línea contiene corchetes, procesarla como bloque
+                if (line.contains("[") && line.contains("]")) {
+                    line = line.replace("[", "").replace("]", "");
+                }
+
+                // Dividir por comas, espacios o ambos
+                String[] values = line.split("[,\\s]+");
+
+                List<Integer> block = new ArrayList<>();
+                for (String value : values) {
+                    value = value.trim();
+
+                    if (!value.isEmpty()) {
+                        try {
+                            int num = Integer.parseInt(value);
+                            block.add(num);
+                        } catch (NumberFormatException e) {
+                            // Si no es un número válido, agregar como -1 (vacío)
+                            if (!value.equals("-1")) {
+                                System.err.println("Valor no numérico ignorado: " + value);
+                            } else {
+                                block.add(-1);
+                            }
+                        }
+                    }
+                }
+
+                // Solo agregar bloques que tengan al menos un elemento
+                if (!block.isEmpty()) {
+                    newBlocks.add(block);
+                }
+            }
+        }
+
+        return newBlocks;
     }
 
     private boolean isValidDigitCount(int value, int digitLimit) {
@@ -138,42 +256,16 @@ public class ExternalSequentialSearchController {
         blocks.clear();
 
         try {
-            File file = new File("src/utilities/datos-busqueda-secuencial-externa.txt");
+            File file = new File(currentFilePath);
 
             if (!file.exists()) {
                 System.out.println("El archivo de datos no existe, se creará uno nuevo: " + file.getAbsolutePath());
                 return;
             }
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.trim().isEmpty()) continue;
+            List<List<Integer>> loadedBlocks = loadDataFromExternalFile(file);
+            blocks.addAll(loadedBlocks);
 
-                    // Remove brackets if present
-                    line = line.replace("[", "").replace("]", "");
-
-                    // Split by comma
-                    String[] values = line.split(",");
-
-                    List<Integer> block = new ArrayList<>();
-                    for (String value : values) {
-                        try {
-                            int num = Integer.parseInt(value.trim());
-                            block.add(num);
-                        } catch (NumberFormatException e) {
-                            // Ignore non-numeric values or add -1 for empty slots
-                            if (value.trim().equals("null") || value.trim().isEmpty()) {
-                                block.add(-1);
-                            }
-                        }
-                    }
-
-                    if (!block.isEmpty()) {
-                        blocks.add(block);
-                    }
-                }
-            }
         } catch (IOException e) {
             System.err.println("Error al leer el archivo: " + e.getMessage());
             e.printStackTrace();
@@ -182,7 +274,11 @@ public class ExternalSequentialSearchController {
 
     private void saveDataToFile() {
         try {
-            File file = new File("src/utilities/datos-busqueda-secuencial-externa.txt");
+            File file = new File(currentFilePath);
+
+            // Crear directorios padre si no existen
+            file.getParentFile().mkdirs();
+
             try (PrintWriter writer = new PrintWriter(file)) {
                 for (List<Integer> block : blocks) {
                     writer.println(block.toString());

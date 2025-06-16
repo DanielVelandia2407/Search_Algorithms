@@ -4,7 +4,6 @@ import controller.menu.TreeController;
 import model.trees.MultipleResidueTreeModel;
 import model.trees.MultipleResidueTreeModel.TreeNode;
 import view.trees.MultipleResidueTreeView;
-import view.trees.TreeView;
 import view.trees.MultipleResidueTreeView.TreeVisualizer;
 
 import javax.swing.*;
@@ -18,7 +17,7 @@ public class MultipleResidueTreeController implements TreeVisualizer {
     private final MultipleResidueTreeModel model;
     private final MultipleResidueTreeView view;
     private TreeController parentController;
-    private TreeView parentView;
+    private JFrame parentView; // Cambiado de TreeView a JFrame
 
     // Variables para la visualización del árbol
     private Integer lastAccessedKey = null;
@@ -44,14 +43,14 @@ public class MultipleResidueTreeController implements TreeVisualizer {
 
     // Constructor adicional que recibe la referencia al controlador padre
     public MultipleResidueTreeController(MultipleResidueTreeModel model, MultipleResidueTreeView view,
-                                         TreeController parentController, TreeView parentView) {
+                                         TreeController parentController, JFrame parentView) {
         this(model, view); // Llama al constructor principal
         this.parentController = parentController;
         this.parentView = parentView;
     }
 
     // Método setter para el controlador padre (opcional)
-    public void setParentController(TreeController parentController, TreeView parentView) {
+    public void setParentController(TreeController parentController, JFrame parentView) {
         this.parentController = parentController;
         this.parentView = parentView;
     }
@@ -221,7 +220,10 @@ public class MultipleResidueTreeController implements TreeVisualizer {
         if (model.getRoot() == null) {
             g2d.setColor(Color.GRAY);
             g2d.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-            g2d.drawString("Inserte valores para ver el árbol", width / 2 - 100, height / 2);
+            FontMetrics fm = g2d.getFontMetrics();
+            String message = "Inserte valores para ver el árbol";
+            int messageWidth = fm.stringWidth(message);
+            g2d.drawString(message, (width - messageWidth) / 2, height / 2);
             return;
         }
 
@@ -244,60 +246,92 @@ public class MultipleResidueTreeController implements TreeVisualizer {
 
         // Calcular la altura del árbol para determinar la distribución
         int treeHeight = model.getHeight();
+        if (treeHeight == 0) return;
 
         // Lista de todos los nodos
         List<TreeNode> allNodes = model.getAllNodes();
+        if (allNodes.isEmpty()) return;
 
         // Ordenar por nivel para dibujar correctamente
         allNodes.sort((n1, n2) -> Integer.compare(n1.level, n2.level));
 
-        // Mapa para rastrear la posición X de cada nodo basado en su nivel
-        int[] levelWidth = new int[treeHeight + 1];
-        int[] levelCount = new int[treeHeight + 1];
-
-        // Inicializar los arrays
-        for (int i = 0; i <= treeHeight; i++) {
-            levelWidth[i] = width / (int) Math.pow(2, i);
-            levelCount[i] = 0;
+        // Calcular posiciones de nodos por nivel
+        int[] nodesPerLevel = new int[treeHeight + 1];
+        for (TreeNode node : allNodes) {
+            nodesPerLevel[node.level]++;
         }
 
-        // Dibujar cada nodo
+        // Contador para posiciones en cada nivel
+        int[] levelCounter = new int[treeHeight + 1];
+
+        // Dibujar conexiones primero
         for (TreeNode node : allNodes) {
-            int level = node.level;
-            int x = levelWidth[level - 1] * levelCount[level - 1] + levelWidth[level - 1] / 2;
-            int y = initialY + (level - 1) * verticalSpace;
-
-            // Incrementar el contador de nodos en este nivel
-            levelCount[level - 1]++;
-
-            // Dibujar el nodo
-            drawNode(g2d, node, x, y, nodeWidth, nodeHeight);
-
-            // Dibujar la conexión con el padre si no es la raíz
-            if (level > 1) {
+            if (node.level > 1) {
                 TreeNode parent = findParent(node);
                 if (parent != null) {
-                    int parentLevel = parent.level;
-                    int parentIndex = findNodeIndex(allNodes, parent);
-                    int parentX = levelWidth[parentLevel - 1] * parentIndex + levelWidth[parentLevel - 1] / 2;
-                    int parentY = initialY + (parentLevel - 1) * verticalSpace;
+                    // Calcular posiciones
+                    int nodeX = calculateNodeX(node, width, nodesPerLevel, levelCounter);
+                    int nodeY = initialY + (node.level - 1) * verticalSpace;
+
+                    int parentX = calculateParentX(parent, width, nodesPerLevel);
+                    int parentY = initialY + (parent.level - 1) * verticalSpace;
 
                     // Dibujar la línea
                     g2d.setColor(Color.BLACK);
-                    g2d.drawLine(x, y, parentX, parentY + nodeHeight);
+                    g2d.setStroke(new BasicStroke(2.0f));
+                    g2d.drawLine(nodeX, nodeY, parentX, parentY + nodeHeight);
                 }
             }
         }
+
+        // Reiniciar contadores para dibujar nodos
+        levelCounter = new int[treeHeight + 1];
+
+        // Dibujar cada nodo
+        for (TreeNode node : allNodes) {
+            int x = calculateNodeX(node, width, nodesPerLevel, levelCounter);
+            int y = initialY + (node.level - 1) * verticalSpace;
+            levelCounter[node.level]++;
+
+            // Dibujar el nodo
+            drawNode(g2d, node, x, y, nodeWidth, nodeHeight);
+        }
     }
 
-    // Método para encontrar el índice de un nodo en la lista
-    private int findNodeIndex(List<TreeNode> nodes, TreeNode target) {
-        for (int i = 0; i < nodes.size(); i++) {
-            if (nodes.get(i).key == target.key) {
-                return i;
+    // Método auxiliar para calcular la posición X de un nodo
+    private int calculateNodeX(TreeNode node, int width, int[] nodesPerLevel, int[] levelCounter) {
+        int level = node.level;
+        int totalNodesInLevel = nodesPerLevel[level];
+        int nodeIndex = levelCounter[level];
+
+        if (totalNodesInLevel == 1) {
+            return width / 2;
+        }
+
+        int spacing = width / (totalNodesInLevel + 1);
+        return spacing * (nodeIndex + 1);
+    }
+
+    // Método auxiliar para calcular la posición X del padre
+    private int calculateParentX(TreeNode parent, int width, int[] nodesPerLevel) {
+        List<TreeNode> allNodes = model.getAllNodes();
+        allNodes.sort((n1, n2) -> Integer.compare(n1.level, n2.level));
+
+        int parentIndex = 0;
+        for (TreeNode node : allNodes) {
+            if (node.level == parent.level) {
+                if (node.key == parent.key) break;
+                parentIndex++;
             }
         }
-        return -1;
+
+        int totalNodesInLevel = nodesPerLevel[parent.level];
+        if (totalNodesInLevel == 1) {
+            return width / 2;
+        }
+
+        int spacing = width / (totalNodesInLevel + 1);
+        return spacing * (parentIndex + 1);
     }
 
     // Método para encontrar el padre de un nodo
@@ -342,10 +376,12 @@ public class MultipleResidueTreeController implements TreeVisualizer {
 
         // Dibujar el borde
         g2d.setColor(Color.BLACK);
+        g2d.setStroke(new BasicStroke(1.0f));
         g2d.drawOval(x - width / 2, y, width, height);
 
         // Dibujar la clave del nodo
         g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
         String keyStr = String.valueOf(node.key);
         FontMetrics fm = g2d.getFontMetrics();
         int textWidth = fm.stringWidth(keyStr);
@@ -363,7 +399,8 @@ public class MultipleResidueTreeController implements TreeVisualizer {
         int margin = 20;
         int boxWidth = 60;
         int boxHeight = 40;
-        int totalDivisors = model.getDivisors().length;
+        int[] divisors = model.getDivisors();
+        int totalDivisors = divisors.length;
 
         // Dibujar en la parte inferior del panel
         int startY = height - 120;
@@ -374,35 +411,42 @@ public class MultipleResidueTreeController implements TreeVisualizer {
         g2d.fill(keyBox);
 
         g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
         String keyText = lastAccessedKey.toString();
-        int keyTextWidth = g2d.getFontMetrics().stringWidth(keyText);
+        FontMetrics fm = g2d.getFontMetrics();
+        int keyTextWidth = fm.stringWidth(keyText);
         g2d.drawString(keyText, margin + boxWidth / 2 - keyTextWidth / 2, startY + 5);
 
         // Calcular ancho disponible para los divisores
         int availableWidth = width - margin * 2 - boxWidth * 2;
-        int divisorSpacing = availableWidth / (totalDivisors + 1);
+        if (totalDivisors > 0) {
+            int divisorSpacing = Math.max(100, availableWidth / totalDivisors);
 
-        // Dibujar las funciones de residuo (una por cada divisor)
-        g2d.setColor(Color.BLACK);
+            // Dibujar las funciones de residuo (una por cada divisor)
+            g2d.setColor(Color.BLACK);
+            g2d.setFont(new Font("Segoe UI", Font.PLAIN, 10));
 
-        for (int i = 0; i < totalDivisors; i++) {
-            int divisorX = margin + boxWidth + divisorSpacing * (i + 1);
-            int divisor = model.getDivisors()[i];
-            int residue = lastAccessedKey % divisor;
-            boolean isEven = (residue % 2 == 0);
-            String direction = isEven ? "Derecha" : "Izquierda";
+            for (int i = 0; i < totalDivisors && i < 3; i++) { // Limitar a 3 divisores para evitar solapamiento
+                int divisorX = margin + boxWidth + 20 + i * divisorSpacing;
+                int divisor = divisors[i];
+                int residue = lastAccessedKey % divisor;
+                boolean isEven = (residue % 2 == 0);
+                String direction = isEven ? "Der" : "Izq";
 
-            String functionText = "mod " + divisor + " = " + residue + " → " + direction;
-            g2d.drawString(functionText, divisorX - g2d.getFontMetrics().stringWidth(functionText) / 2, startY + (i - totalDivisors / 2) * 25);
+                String functionText = "mod " + divisor + "=" + residue + "→" + direction;
+                FontMetrics fmSmall = g2d.getFontMetrics();
+                int textWidth = fmSmall.stringWidth(functionText);
+                g2d.drawString(functionText, divisorX - textWidth / 2, startY + (i - totalDivisors / 2) * 15);
 
-            // Dibujar flecha si es el primer divisor
-            if (i == 0) {
-                g2d.draw(new Line2D.Double(margin + boxWidth, startY, divisorX - g2d.getFontMetrics().stringWidth(functionText) / 2 - 5, startY));
-                g2d.fillPolygon(
-                        new int[]{divisorX - g2d.getFontMetrics().stringWidth(functionText) / 2 - 5, divisorX - g2d.getFontMetrics().stringWidth(functionText) / 2 - 10, divisorX - g2d.getFontMetrics().stringWidth(functionText) / 2 - 10},
-                        new int[]{startY, startY - 5, startY + 5},
-                        3
-                );
+                // Dibujar flecha desde la clave al primer divisor
+                if (i == 0) {
+                    g2d.setStroke(new BasicStroke(1.0f));
+                    g2d.drawLine(margin + boxWidth, startY, divisorX - textWidth / 2 - 5, startY);
+                    // Punta de flecha
+                    int[] xPoints = {divisorX - textWidth / 2 - 5, divisorX - textWidth / 2 - 10, divisorX - textWidth / 2 - 10};
+                    int[] yPoints = {startY, startY - 3, startY + 3};
+                    g2d.fillPolygon(xPoints, yPoints, 3);
+                }
             }
         }
     }

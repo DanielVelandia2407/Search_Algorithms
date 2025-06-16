@@ -2,13 +2,7 @@ package controller.indexes;
 
 import view.menu.IndicesMenuView;
 import view.indexes.ImprovedMultilevelIndexView;
-import view.ConfigurationDialog;
-
 import javax.swing.*;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,548 +10,385 @@ import java.util.List;
 public class ImprovedMultilevelIndexController {
 
     private ImprovedMultilevelIndexView view;
-    private List<IndexRecord> dataRecords;
-    private List<List<IndexLevel>> indexLevels;
+    private List<SimpleRecord> dataRecords;
+    private List<List<SimpleIndex>> indexLevels; // Múltiples niveles de índices
     private IndicesMenuView indicesMenuView;
-    private Object algorithmMenuView;
 
-    // Technical parameters for realistic simulation
-    private int blockSizeBytes = 1024;
-    private int dataRecordSizeBytes = 64;
-    private int indexRecordSizeBytes = 12;
+    // Parámetros de configuración
     private int recordCount = 15;
-
-    // Calculated values
-    private int dataRecordsPerBlock;
-    private int indexRecordsPerBlock;
-    private int totalLevels;
+    private int blockSize = 1024;
+    private int dataRecordSize = 64;
+    private int indexRecordSize = 12;
+    private int indexPerBlock = 85;
+    private int dataPerBlock = 16;
 
     public ImprovedMultilevelIndexController(ImprovedMultilevelIndexView view) {
-        this(view, null);
-    }
-
-    public ImprovedMultilevelIndexController(ImprovedMultilevelIndexView view, ConfigurationDialog.ConfigurationData initialConfig) {
         this.view = view;
         this.dataRecords = new ArrayList<>();
         this.indexLevels = new ArrayList<>();
 
-        if (initialConfig != null) {
-            recordCount = initialConfig.getRecordCount();
-            blockSizeBytes = initialConfig.getBlockSizeBytes();
-            dataRecordSizeBytes = initialConfig.getDataRecordSizeBytes();
-            indexRecordSizeBytes = initialConfig.getIndexRecordSizeBytes();
-        }
-
-        calculateConfiguration();
-
         initComponents();
+        generateInitialData();
+        buildMultilevelIndexes();
+        displayDataInTables();
+    }
 
-        if (initialConfig != null) {
-            generateNewData(recordCount);
-        } else {
-            loadDataFromFile();
+    private void initComponents() {
+        view.addConfigureListener(e -> configureStructure());
+        view.addInsertRecordListener(e -> insertRecord());
+        view.addSearchListener(e -> performSearch());
+        view.addDeleteRecordListener(e -> deleteRecord());
+        view.addBackListener(e -> goBack());
+    }
+
+    private void generateInitialData() {
+        dataRecords.clear();
+
+        String[] names = {"Ana", "Carlos", "María", "José", "Laura", "Pedro", "Sofía", "Diego",
+                "Carmen", "Roberto", "Elena", "Miguel", "Isabel", "Andrés", "Patricia"};
+
+        for (int i = 0; i < recordCount; i++) {
+            int id = (i + 1) * 10; // IDs: 10, 20, 30, ...
+            String name = names[i % names.length];
+            if (i >= names.length) {
+                name += (i / names.length + 1);
+            }
+            dataRecords.add(new SimpleRecord(id, name, 20 + (i % 40)));
         }
 
-        // Build all index levels dynamically
-        buildAllIndexLevels();
-
-        // Display data in tables
-        displayDataInTables();
-
-        // Display current configuration
-        updateConfigurationDisplay();
-
-        // Update input fields with current configuration
-        updateInputFields();
+        Collections.sort(dataRecords, (r1, r2) -> Integer.compare(r1.getId(), r2.getId()));
     }
 
-    /**
-     * Calculates the configuration based on the current parameters
-     */
-    private void calculateConfiguration() {
-        dataRecordsPerBlock = Math.max(1, blockSizeBytes / dataRecordSizeBytes);
-        indexRecordsPerBlock = Math.max(1, blockSizeBytes / indexRecordSizeBytes);
-
-        // Calculate total levels needed for the index
-        totalLevels = MultilevelCalculator.calculateRequiredLevels(
-                recordCount, dataRecordsPerBlock, indexRecordsPerBlock);
-
-        System.out.println("=== CONFIGURACIÓN CALCULADA ===");
-        System.out.println("- Registros totales: " + String.format("%,d", recordCount));
-        System.out.println("- Tamaño del bloque: " + blockSizeBytes + " bytes");
-        System.out.println("- Tamaño registro datos: " + dataRecordSizeBytes + " bytes");
-        System.out.println("- Tamaño registro índice: " + indexRecordSizeBytes + " bytes");
-        System.out.println("- Registros de datos por bloque: " + dataRecordsPerBlock);
-        System.out.println("- Registros de índice por bloque: " + indexRecordsPerBlock);
-        System.out.println("- Niveles de índice necesarios: " + (totalLevels - 1));
-        System.out.println("- Niveles totales (incluyendo datos): " + totalLevels);
-
-        // Print index structure
-        MultilevelCalculator.printIndexStructure(recordCount, dataRecordsPerBlock, indexRecordsPerBlock);
-    }
-
-    /**
-     * Builds all index levels dynamically based on the data records
-     */
-    private void buildAllIndexLevels() {
+    private void buildMultilevelIndexes() {
         indexLevels.clear();
 
         if (dataRecords.isEmpty()) {
             return;
         }
 
-        System.out.println("\n=== Calculo ===");
+        System.out.println("\n=== CONSTRUCCIÓN DE ÍNDICES MULTINIVEL ===");
+        System.out.println("Registros de datos: " + dataRecords.size());
+        System.out.println("Registros de datos por bloque: " + dataPerBlock);
+        System.out.println("Registros de índice por bloque: " + indexPerBlock);
 
-        // Level 1: Índice primario (apunta a bloques de datos)
-        List<IndexLevel> level1 = buildLevel1Index();
+        // Calcular número de entradas para el nivel 1 basado en registros de datos
+        // Cada registro necesita una entrada en el índice (peor caso para índice secundario)
+        int dataBlocks = (int) Math.ceil((double) dataRecords.size() / dataPerBlock);
+        System.out.println("Bloques de datos necesarios: " + dataBlocks);
+
+        // Nivel 1: Una entrada por cada registro (simulando índice secundario)
+        List<SimpleIndex> level1 = buildLevel1IndexFixed();
         indexLevels.add(level1);
-        System.out.println("Nivel 1 construido: " + level1.size() + " entradas");
+        System.out.println("Nivel 1 construido: " + level1.size() + " entradas (una por registro)");
 
-        // Build upper levels until the last level is smaller than indexRecordsPerBlock
-        int currentLevel = 2;
-        List<IndexLevel> currentLevelData = level1;
+        // Construir niveles superiores basándose en el número de registros del nivel anterior
+        int currentLevelRecords = level1.size();
+        int levelNumber = 2;
 
-        while (currentLevelData.size() > indexRecordsPerBlock) {
-            List<IndexLevel> nextLevel = buildUpperLevel(currentLevelData, currentLevel);
+        // Continuar mientras necesitemos más de un bloque para el nivel actual
+        while (currentLevelRecords > indexPerBlock) {
+            // Calcular cuántos bloques necesita el nivel actual
+            int currentLevelBlocks = (int) Math.ceil((double) currentLevelRecords / indexPerBlock);
+            System.out.println("Nivel " + (levelNumber-1) + " tiene " + currentLevelRecords +
+                    " registros y necesita " + currentLevelBlocks + " bloques");
+
+            // Crear el siguiente nivel con una entrada por cada bloque del nivel anterior
+            List<SimpleIndex> nextLevel = buildUpperLevelFixed(currentLevelRecords, levelNumber);
             indexLevels.add(nextLevel);
-            System.out.println("Nivel " + currentLevel + " construido: " + nextLevel.size() + " entradas");
 
-            currentLevelData = nextLevel;
-            currentLevel++;
+            System.out.println("Nivel " + levelNumber + " construido: " + nextLevel.size() + " entradas");
+
+            // Actualizar para el siguiente ciclo
+            currentLevelRecords = nextLevel.size();
+            levelNumber++;
+
+            // Protección contra bucles infinitos
+            if (levelNumber > 10) {
+                System.out.println("ADVERTENCIA: Deteniendo construcción en nivel 10");
+                break;
+            }
         }
 
-        System.out.println("Construcción completada. Total de niveles de índice: " + indexLevels.size());
+        System.out.println("Nivel final (" + (levelNumber-1) + ") tiene " + currentLevelRecords +
+                " registros que caben en 1 bloque (≤ " + indexPerBlock + ")");
+        System.out.println("Total de niveles de índice: " + indexLevels.size());
+
+        // Recrear paneles en la vista
+        view.recreateIndexPanels(indexLevels.size());
     }
 
-    /**
-     * Builda el primer nivel de índices (índice primario)
-     */
-    private List<IndexLevel> buildLevel1Index() {
-        List<IndexLevel> level1 = new ArrayList<>();
+    private List<SimpleIndex> buildLevel1IndexFixed() {
+        List<SimpleIndex> level1 = new ArrayList<>();
 
-        for (int i = 0; i < dataRecords.size(); i += dataRecordsPerBlock) {
-            int endIndex = Math.min(i + dataRecordsPerBlock - 1, dataRecords.size() - 1);
-            int blockId = i / dataRecordsPerBlock;
-            int firstKey = dataRecords.get(i).getId();
-            int lastKey = dataRecords.get(endIndex).getId();
-
-            level1.add(new IndexLevel(1, blockId, firstKey, lastKey, i, "DATOS"));
+        // Crear una entrada de índice por cada registro (simulando índice secundario)
+        // Esto simula el peor caso donde cada registro tiene un valor único de clave secundaria
+        for (int i = 0; i < dataRecords.size(); i++) {
+            int recordId = dataRecords.get(i).getId();
+            level1.add(new SimpleIndex(recordId, i, "DATOS"));
         }
 
         return level1;
     }
 
-    /**
-     * Builds an upper level of indices based on the lower level
-     */
-    private List<IndexLevel> buildUpperLevel(List<IndexLevel> lowerLevel, int levelNumber) {
-        List<IndexLevel> upperLevel = new ArrayList<>();
+    private List<SimpleIndex> buildUpperLevelFixed(int lowerLevelRecords, int levelNumber) {
+        List<SimpleIndex> upperLevel = new ArrayList<>();
 
-        for (int i = 0; i < lowerLevel.size(); i += indexRecordsPerBlock) {
-            int endIndex = Math.min(i + indexRecordsPerBlock - 1, lowerLevel.size() - 1);
-            int blockId = i / indexRecordsPerBlock;
-            int firstKey = lowerLevel.get(i).getFirstKey();
-            int lastKey = lowerLevel.get(endIndex).getLastKey();
+        // Calcular cuántos bloques necesita el nivel inferior
+        int lowerLevelBlocks = (int) Math.ceil((double) lowerLevelRecords / indexPerBlock);
 
-            upperLevel.add(new IndexLevel(levelNumber, blockId, firstKey, lastKey, i,
-                    "NIVEL_" + (levelNumber - 1)));
+        // Crear una entrada por cada bloque del nivel inferior
+        for (int blockIndex = 0; blockIndex < lowerLevelBlocks; blockIndex++) {
+            int startPosition = blockIndex * indexPerBlock;
+
+            // Obtener el primer valor del bloque (si existe)
+            if (startPosition < indexLevels.get(levelNumber - 2).size()) {
+                int firstValue = indexLevels.get(levelNumber - 2).get(startPosition).getValue();
+                String targetType = "NIVEL_" + (levelNumber - 1);
+                upperLevel.add(new SimpleIndex(firstValue, startPosition, targetType));
+            }
         }
 
         return upperLevel;
     }
 
-    /**
-     * Searches for a record in the multilevel index
-     */
-    private SearchResult performMultilevelSearch(int searchId, boolean animated) {
-        SearchResult result = new SearchResult();
-        result.levelAccesses = new ArrayList<>();
+    // Método legacy mantenido para compatibilidad (no se usa)
+    private List<SimpleIndex> buildLevel1Index() {
+        List<SimpleIndex> level1 = new ArrayList<>();
 
-        // Inicialite accesss for each level
-        for (int i = 0; i < indexLevels.size(); i++) {
-            result.levelAccesses.add(0);
+        // Crear índices que apuntan a bloques de datos
+        for (int i = 0; i < dataRecords.size(); i += dataPerBlock) {
+            int firstRecordId = dataRecords.get(i).getId();
+            level1.add(new SimpleIndex(firstRecordId, i, "DATOS"));
         }
 
-        int currentPointer = -1;
+        return level1;
+    }
 
-        // Search through index levels from top to bottom
-        for (int level = indexLevels.size() - 1; level >= 0; level--) {
-            List<IndexLevel> currentLevel = indexLevels.get(level);
+    // Método legacy mantenido para compatibilidad (no se usa)
+    private List<SimpleIndex> buildUpperLevelExact(List<SimpleIndex> lowerLevel, int levelNumber, int indexesPerBlock) {
+        List<SimpleIndex> upperLevel = new ArrayList<>();
 
-            if (animated) {
-                try {
-                    Thread.sleep(800);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+        // Crear una entrada de índice por cada bloque del nivel inferior
+        for (int i = 0; i < lowerLevel.size(); i += indexesPerBlock) {
+            int firstIndexValue = lowerLevel.get(i).getValue();
+            String targetType = "NIVEL_" + (levelNumber - 1);
+            upperLevel.add(new SimpleIndex(firstIndexValue, i, targetType));
+        }
+
+        return upperLevel;
+    }
+
+    // Método legacy mantenido para compatibilidad (no se usa)
+    private List<SimpleIndex> buildUpperLevel(List<SimpleIndex> lowerLevel, int levelNumber) {
+        return buildUpperLevelExact(lowerLevel, levelNumber, indexPerBlock);
+    }
+
+    private void displayDataInTables() {
+        System.out.println("\n=== MOSTRANDO DATOS EN TABLAS ===");
+
+        // Mostrar datos
+        Object[][] dataTableData = new Object[dataRecords.size()][3];
+        for (int i = 0; i < dataRecords.size(); i++) {
+            SimpleRecord record = dataRecords.get(i);
+            dataTableData[i][0] = record.getId();
+            dataTableData[i][1] = record.getName();
+            dataTableData[i][2] = record.getAge();
+        }
+        view.setDataTableData(dataTableData);
+        System.out.println("Datos mostrados: " + dataRecords.size() + " registros");
+
+        // Mostrar todos los niveles de índices
+        System.out.println("Niveles de índices disponibles: " + indexLevels.size());
+
+        for (int level = 0; level < indexLevels.size(); level++) {
+            List<SimpleIndex> currentLevelIndexes = indexLevels.get(level);
+            Object[][] indexTableData = new Object[currentLevelIndexes.size()][2];
+
+            System.out.println("Procesando nivel " + (level + 1) + " con " + currentLevelIndexes.size() + " entradas");
+
+            for (int i = 0; i < currentLevelIndexes.size(); i++) {
+                SimpleIndex index = currentLevelIndexes.get(i);
+                indexTableData[i][0] = index.getValue();
+
+                if (level == 0) {
+                    // Nivel 1 apunta directamente a registros de datos
+                    indexTableData[i][1] = "R" + (index.getPointer() + 1);
+                } else {
+                    // Niveles superiores apuntan a bloques de índices del nivel inferior
+                    int blockNumber = (index.getPointer() / indexPerBlock) + 1;
+                    indexTableData[i][1] = "B" + blockNumber;
                 }
             }
 
-            // Determine the range of records to search in this level
-            int startIndex = (level == indexLevels.size() - 1) ? 0 : currentPointer;
-            int endIndex = (level == indexLevels.size() - 1) ?
-                    currentLevel.size() :
-                    Math.min(startIndex + indexRecordsPerBlock, currentLevel.size());
+            view.setIndexTableData(level, indexTableData);
+            System.out.println("✓ Nivel " + (level + 1) + " enviado a la vista");
+        }
 
-            boolean found = false;
-            for (int i = startIndex; i < endIndex; i++) {
-                IndexLevel indexEntry = currentLevel.get(i);
-                result.levelAccesses.set(level, result.levelAccesses.get(level) + 1);
+        // Mostrar información de la estructura generada
+        String structureInfo = String.format(
+                "Estructura generada: %,d registros, %d niveles de índice, " +
+                        "%d registros/bloque (datos), %d registros/bloque (índices)",
+                dataRecords.size(), indexLevels.size(), dataPerBlock, indexPerBlock);
 
-                if (animated) {
-                    highlightIndexLevel(level, i);
-                    updateSearchProgress(String.format(
-                            "Nivel %d - Acceso %d: Bloque %d (rango: %,d-%,d)",
-                            level + 1, result.levelAccesses.get(level),
-                            indexEntry.getBlockId(), indexEntry.getFirstKey(), indexEntry.getLastKey()));
+        view.setResultMessage(structureInfo, true);
+        System.out.println("=== FIN MOSTRAR DATOS ===\n");
+    }
 
-                    try {
-                        Thread.sleep(600);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
+    private void configureStructure() {
+        String recordCountInput = view.getRecordCount();
+        String blockSizeInput = view.getBlockSize();
+        String dataRecordSizeInput = view.getDataRecordSize();
+        String indexRecordSizeInput = view.getIndexRecordSize();
+        String indexPerBlockInput = view.getIndexPerBlock();
+        String dataPerBlockInput = view.getDataPerBlock();
+
+        if (recordCountInput.isEmpty() || blockSizeInput.isEmpty() ||
+                dataRecordSizeInput.isEmpty() || indexRecordSizeInput.isEmpty() ||
+                indexPerBlockInput.isEmpty() || dataPerBlockInput.isEmpty()) {
+            view.setResultMessage("Por favor complete todos los campos de configuración", false);
+            return;
+        }
+
+        try {
+            int newRecordCount = Integer.parseInt(recordCountInput);
+            int newBlockSize = Integer.parseInt(blockSizeInput);
+            int newDataRecordSize = Integer.parseInt(dataRecordSizeInput);
+            int newIndexRecordSize = Integer.parseInt(indexRecordSizeInput);
+            int newIndexPerBlock = Integer.parseInt(indexPerBlockInput);
+            int newDataPerBlock = Integer.parseInt(dataPerBlockInput);
+
+            // Validaciones
+            if (newRecordCount < 1) {
+                view.setResultMessage("El número de registros debe ser mayor a 0", false);
+                return;
+            }
+
+            if (newBlockSize < 32) {
+                view.setResultMessage("El tamaño del bloque debe ser al menos 32 bytes", false);
+                return;
+            }
+
+            if (newDataRecordSize < 4 || newIndexRecordSize < 4) {
+                view.setResultMessage("Los tamaños de registro deben ser al menos 4 bytes", false);
+                return;
+            }
+
+            if (newIndexPerBlock < 1 || newDataPerBlock < 1) {
+                view.setResultMessage("Los registros por bloque deben ser al menos 1", false);
+                return;
+            }
+
+            // Actualizar configuración
+            recordCount = newRecordCount;
+            blockSize = newBlockSize;
+            dataRecordSize = newDataRecordSize;
+            indexRecordSize = newIndexRecordSize;
+            indexPerBlock = newIndexPerBlock;
+            dataPerBlock = newDataPerBlock;
+
+            // Regenerar estructura
+            generateDataForCount(recordCount);
+            buildMultilevelIndexes();
+            displayDataInTables();
+
+            view.setResultMessage(String.format(
+                    "Estructura generada: %d registros, %d niveles de índice, " +
+                            "%d registros/bloque (datos), %d registros/bloque (índices)",
+                    recordCount, indexLevels.size(), dataPerBlock, indexPerBlock), true);
+
+        } catch (NumberFormatException e) {
+            view.setResultMessage("Por favor ingrese valores numéricos válidos", false);
+        }
+    }
+
+    private void generateDataForCount(int count) {
+        dataRecords.clear();
+        String[] names = {"Ana", "Carlos", "María", "José", "Laura", "Pedro", "Sofía", "Diego",
+                "Carmen", "Roberto", "Elena", "Miguel", "Isabel", "Andrés", "Patricia",
+                "Fernando", "Lucía", "Ricardo", "Valeria", "Sebastián", "Camila", "Mateo",
+                "Valentina", "Santiago", "Isabella", "Nicolás", "Gabriela", "Daniel"};
+
+        for (int i = 0; i < count; i++) {
+            int id = (i + 1) * 10;
+            String name = names[i % names.length];
+            if (i >= names.length) {
+                name += (i / names.length + 1);
+            }
+            dataRecords.add(new SimpleRecord(id, name, 20 + (i % 40)));
+        }
+
+        Collections.sort(dataRecords, (r1, r2) -> Integer.compare(r1.getId(), r2.getId()));
+    }
+
+    private void insertRecord() {
+        String idInput = view.getInsertId();
+        String nameInput = view.getInsertName();
+        String ageInput = view.getInsertAge();
+
+        if (idInput.isEmpty() || nameInput.isEmpty() || ageInput.isEmpty()) {
+            view.setResultMessage("Por favor complete todos los campos", false);
+            return;
+        }
+
+        try {
+            int id = Integer.parseInt(idInput);
+            int age = Integer.parseInt(ageInput);
+
+            // Verificar si el ID ya existe
+            for (SimpleRecord record : dataRecords) {
+                if (record.getId() == id) {
+                    view.setResultMessage("El ID " + id + " ya existe", false);
+                    return;
                 }
+            }
 
-                if (searchId >= indexEntry.getFirstKey() && searchId <= indexEntry.getLastKey()) {
-                    currentPointer = indexEntry.getPointer();
+            dataRecords.add(new SimpleRecord(id, nameInput, age));
+            Collections.sort(dataRecords, (r1, r2) -> Integer.compare(r1.getId(), r2.getId()));
+
+            buildMultilevelIndexes();
+            displayDataInTables();
+
+            view.setResultMessage("Registro insertado. Nueva estructura: " +
+                    indexLevels.size() + " niveles de índice", true);
+
+        } catch (NumberFormatException e) {
+            view.setResultMessage("ID y edad deben ser números válidos", false);
+        }
+    }
+
+    private void deleteRecord() {
+        String idInput = view.getDeleteId();
+
+        if (idInput.isEmpty()) {
+            view.setResultMessage("Por favor ingrese un ID para eliminar", false);
+            return;
+        }
+
+        try {
+            int id = Integer.parseInt(idInput);
+            boolean found = false;
+
+            for (int i = 0; i < dataRecords.size(); i++) {
+                if (dataRecords.get(i).getId() == id) {
+                    dataRecords.remove(i);
                     found = true;
-
-                    if (animated) {
-                        updateSearchProgress(String.format(
-                                "Nivel %d - Encontrado: Bloque %d (rango: %,d-%,d)",
-                                level + 1, currentPointer, indexEntry.getTargetType()));
-                    }
                     break;
                 }
             }
 
-            if (!found) {
-                return result; // Not found in this level, exit early
-            }
-        }
-
-        // Search in the data records block
-        if (animated) {
-            updateSearchProgress("Recorriendo registros de claves");
-            try {
-                Thread.sleep(600);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        int endData = Math.min(currentPointer + dataRecordsPerBlock, dataRecords.size());
-        for (int i = currentPointer; i < endData; i++) {
-            IndexRecord record = dataRecords.get(i);
-            result.dataAccesses++;
-
-            if (animated) {
-                highlightDataRecord(i);
-                updateSearchProgress(String.format(
-                        "Datos - Acceso %d: Registro %d (ID: %,d)",
-                        result.dataAccesses, i, record.getId()));
-
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-
-            if (record.getId() == searchId) {
-                result.record = record;
-                return result;
-            }
-        }
-
-        return result;
-    }
-
-    private void updateConfigurationDisplay() {
-        String configInfo = String.format(
-                "Configuración: %,d registros | Bloque=%d bytes | Datos=%d bytes | Índice=%d bytes | " +
-                        "Reg/Bloque: Datos=%d, Índices=%d | Niveles de índice=%d",
-                recordCount, blockSizeBytes, dataRecordSizeBytes, indexRecordSizeBytes,
-                dataRecordsPerBlock, indexRecordsPerBlock, indexLevels.size()
-        );
-        view.setConfigurationInfo(configInfo);
-    }
-
-    private void updateInputFields() {
-        view.setInputValues(
-                String.valueOf(recordCount),
-                String.valueOf(blockSizeBytes),
-                String.valueOf(dataRecordSizeBytes),
-                String.valueOf(indexRecordSizeBytes)
-        );
-    }
-
-    // Auxiliary methods for highlighting and updating UI during search
-    private void highlightIndexLevel(int level, int index) {
-        if (level == 0) {
-            view.highlightPrimaryIndex(index);
-        } else if (level == indexLevels.size() - 1) {
-            view.highlightSecondaryIndex(index);
-        }
-    }
-
-    private void highlightDataRecord(int index) {
-        if (index < 1000 || dataRecords.size() <= 50000) {
-            view.highlightDataRecord(index);
-        }
-    }
-
-    private void updateSearchProgress(String message) {
-        SwingUtilities.invokeLater(() -> view.setSearchProgress(message));
-    }
-
-    private void displayDataInTables() {
-        boolean isLargeDataset = dataRecords.size() > 50000;
-        int maxDisplayRows = isLargeDataset ? 1000 : dataRecords.size();
-
-        if (isLargeDataset) {
-            view.setResultMessage("Dataset grande detectado (" + String.format("%,d", dataRecords.size()) +
-                    " registros). Mostrando primeros " + maxDisplayRows + " para mejor rendimiento.", true);
-        }
-
-        // Display data records
-        Object[][] dataTableData = new Object[Math.min(maxDisplayRows, dataRecords.size())][5];
-        for (int i = 0; i < Math.min(maxDisplayRows, dataRecords.size()); i++) {
-            IndexRecord record = dataRecords.get(i);
-            int blockId = i / dataRecordsPerBlock;
-            int positionInBlock = i % dataRecordsPerBlock;
-
-            dataTableData[i][0] = blockId;
-            dataTableData[i][1] = positionInBlock;
-            dataTableData[i][2] = record.getId();
-            dataTableData[i][3] = record.getName();
-            dataTableData[i][4] = record.getAge();
-        }
-        view.setDataTableData(dataTableData);
-
-        // Display index levels (mostrar solo los dos niveles más relevantes para la vista actual)
-        if (!indexLevels.isEmpty()) {
-            // Show the first level as primary index
-            List<IndexLevel> level1 = indexLevels.get(0);
-            Object[][] primaryTableData = new Object[level1.size()][7];
-            for (int i = 0; i < level1.size(); i++) {
-                IndexLevel index = level1.get(i);
-                int recordsInBlock = Math.min(dataRecordsPerBlock, dataRecords.size() - index.getPointer());
-                int blockUtilization = (recordsInBlock * dataRecordSizeBytes * 100) / blockSizeBytes;
-
-                primaryTableData[i][0] = "L1-" + index.getBlockId();
-                primaryTableData[i][1] = index.getFirstKey();
-                primaryTableData[i][2] = index.getLastKey();
-                primaryTableData[i][3] = index.getPointer();
-                primaryTableData[i][4] = recordsInBlock;
-                primaryTableData[i][5] = blockUtilization + "%";
-                primaryTableData[i][6] = index.getTargetType();
-            }
-            view.setPrimaryIndexTableData(primaryTableData);
-
-            // Show the secondary index level if it exists
-            if (indexLevels.size() > 1) {
-                List<IndexLevel> topLevel = indexLevels.get(indexLevels.size() - 1);
-                Object[][] secondaryTableData = new Object[topLevel.size()][7];
-                for (int i = 0; i < topLevel.size(); i++) {
-                    IndexLevel index = topLevel.get(i);
-                    int targetLevelSize = (indexLevels.size() > 1) ?
-                            indexLevels.get(indexLevels.size() - 2).size() : level1.size();
-                    int indexesInBlock = Math.min(indexRecordsPerBlock, targetLevelSize - index.getPointer());
-                    int blockUtilization = (indexesInBlock * indexRecordSizeBytes * 100) / blockSizeBytes;
-
-                    secondaryTableData[i][0] = "L" + indexLevels.size() + "-" + index.getBlockId();
-                    secondaryTableData[i][1] = index.getFirstKey();
-                    secondaryTableData[i][2] = index.getLastKey();
-                    secondaryTableData[i][3] = index.getPointer();
-                    secondaryTableData[i][4] = indexesInBlock;
-                    secondaryTableData[i][5] = blockUtilization + "%";
-                    secondaryTableData[i][6] = index.getTargetType();
-                }
-                view.setSecondaryIndexTableData(secondaryTableData);
-            }
-        }
-
-        updateStatistics();
-    }
-
-    private void updateStatistics() {
-        int totalDataBlocks = (int) Math.ceil((double) dataRecords.size() / dataRecordsPerBlock);
-        int totalIndexBlocks = 0;
-
-        for (List<IndexLevel> level : indexLevels) {
-            totalIndexBlocks += (int) Math.ceil((double) level.size() / indexRecordsPerBlock);
-        }
-
-        double storageEfficiency = calculateStorageEfficiency();
-
-        String stats = String.format(
-                "Estadísticas: %,d registros | %d niveles índice | Bloques: %,d datos, %,d índices | Eficiencia: %.1f%%",
-                dataRecords.size(), indexLevels.size(), totalDataBlocks, totalIndexBlocks, storageEfficiency
-        );
-        view.setStatistics(stats);
-    }
-
-    private double calculateStorageEfficiency() {
-        int usedDataBytes = dataRecords.size() * dataRecordSizeBytes;
-        int totalDataBlocks = (int) Math.ceil((double) dataRecords.size() / dataRecordsPerBlock);
-        int allocatedDataBytes = totalDataBlocks * blockSizeBytes;
-
-        return allocatedDataBytes > 0 ? (double) usedDataBytes / allocatedDataBytes * 100 : 0;
-    }
-
-    private void initComponents() {
-        // Add action listeners to buttons
-        view.addSearchListener(e -> performSearch());
-
-        view.addConfigureListener(e -> {
-            String recordCountInput = view.getRecordCount();
-            String blockSizeInput = view.getBlockSizeBytes();
-            String dataRecordSizeInput = view.getDataRecordSizeBytes();
-            String indexRecordSizeInput = view.getIndexRecordSizeBytes();
-
-            if (!recordCountInput.isEmpty() && !blockSizeInput.isEmpty() &&
-                    !dataRecordSizeInput.isEmpty() && !indexRecordSizeInput.isEmpty()) {
-                try {
-                    int newRecordCount = Integer.parseInt(recordCountInput);
-                    int newBlockSize = Integer.parseInt(blockSizeInput);
-                    int newDataRecordSize = Integer.parseInt(dataRecordSizeInput);
-                    int newIndexRecordSize = Integer.parseInt(indexRecordSizeInput);
-
-                    // Validaciones básicas
-                    if (newBlockSize < 32) {
-                        view.setResultMessage("El tamaño del bloque debe ser al menos 32 bytes", false);
-                        return;
-                    }
-
-                    if (newDataRecordSize < 4) {
-                        view.setResultMessage("El tamaño del registro de datos debe ser al menos 4 bytes", false);
-                        return;
-                    }
-
-                    if (newIndexRecordSize < 4) {
-                        view.setResultMessage("El tamaño del registro de índice debe ser al menos 4 bytes", false);
-                        return;
-                    }
-
-                    if (newRecordCount < 1) {
-                        view.setResultMessage("El número de registros debe ser mayor a 0", false);
-                        return;
-                    }
-
-                    if (newBlockSize < newDataRecordSize) {
-                        view.setResultMessage("El bloque debe ser mas grande para contener los datos", false);
-                        return;
-                    }
-
-                    if (newBlockSize < newIndexRecordSize) {
-                        view.setResultMessage("El bloque debe ser mas grande para contener los indices", false);
-                        return;
-                    }
-
-                    // Warning for large configurations
-                    if (newRecordCount > 100000) {
-                        view.setResultMessage("Configuración grande: " + String.format("%,d", newRecordCount) +
-                                " registros. Puede tomar tiempo en cargar.", true);
-                    }
-
-                    // Update configuration
-                    recordCount = newRecordCount;
-                    blockSizeBytes = newBlockSize;
-                    dataRecordSizeBytes = newDataRecordSize;
-                    indexRecordSizeBytes = newIndexRecordSize;
-
-                    calculateConfiguration();
-                    updateConfigurationDisplay();
-
-                    // Show calculated levels in the view
-                    String levelInfo = String.format(
-                            "Niveles calculados: %d índices + 1 datos = %d total | " +
-                                    "Accesos máximos: %d | Mejora vs secuencial: %.1fx",
-                            totalLevels - 1, totalLevels, totalLevels,
-                            (double) recordCount / 2 / totalLevels
-                    );
-                    view.setLevelInfo(levelInfo);
-
-                    // Generate new data if the record count is large
-                    if (recordCount > 10000) {
-                        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-                            @Override
-                            protected Void doInBackground() throws Exception {
-                                publish("Generando " + String.format("%,d", recordCount) + " registros...");
-                                generateNewData(recordCount);
-                                publish("Construyendo " + (totalLevels - 1) + " niveles de índices...");
-                                buildAllIndexLevels();
-                                publish("Actualizando vista...");
-                                return null;
-                            }
-
-                            @Override
-                            protected void process(List<String> chunks) {
-                                view.setResultMessage(chunks.get(chunks.size() - 1), true);
-                            }
-
-                            @Override
-                            protected void done() {
-                                displayDataInTables();
-                                view.setResultMessage("Configuración aplicada exitosamente: " +
-                                        String.format("%,d", recordCount) + " registros generados con " +
-                                        (totalLevels - 1) + " niveles de índice", true);
-                            }
-                        };
-                        worker.execute();
-                    } else {
-                        generateNewData(recordCount);
-                        buildAllIndexLevels();
-                        displayDataInTables();
-                        view.setResultMessage("Configuración aplicada exitosamente", true);
-                    }
-
-                } catch (NumberFormatException ex) {
-                    view.setResultMessage("Por favor ingrese valores numéricos válidos", false);
-                }
+            if (found) {
+                recordCount = dataRecords.size();
+                buildMultilevelIndexes();
+                displayDataInTables();
+                view.setResultMessage("Registro eliminado. Nueva estructura: " +
+                        indexLevels.size() + " niveles de índice", true);
             } else {
-                view.setResultMessage("Por favor complete todos los campos de configuración", false);
+                view.setResultMessage("Registro con ID " + id + " no encontrado", false);
             }
-        });
 
-        view.addInsertRecordListener(e -> {
-            String idInput = view.getInsertId();
-            String nameInput = view.getInsertName();
-            String ageInput = view.getInsertAge();
-
-            if (!idInput.isEmpty() && !nameInput.isEmpty() && !ageInput.isEmpty()) {
-                try {
-                    int id = Integer.parseInt(idInput);
-                    int age = Integer.parseInt(ageInput);
-
-                    try {
-                        insertRecord(id, nameInput, age);
-                    } catch (IllegalArgumentException ex) {
-                        view.setResultMessage(ex.getMessage(), false);
-                    }
-                } catch (NumberFormatException ex) {
-                    view.setResultMessage("Por favor ingrese valores numéricos válidos para ID y edad", false);
-                }
-            } else {
-                view.setResultMessage("Por favor complete todos los campos", false);
-            }
-        });
-
-        view.addDeleteRecordListener(e -> {
-            String input = view.getDeleteId();
-            if (!input.isEmpty()) {
-                try {
-                    int id = Integer.parseInt(input);
-                    deleteRecord(id);
-                } catch (NumberFormatException ex) {
-                    view.setResultMessage("Por favor ingrese un ID numérico válido", false);
-                }
-            } else {
-                view.setResultMessage("Por favor ingrese un ID para eliminar", false);
-            }
-        });
-
-        view.addBackListener(e -> goBack());
+        } catch (NumberFormatException e) {
+            view.setResultMessage("Por favor ingrese un ID numérico válido", false);
+        }
     }
 
     private void performSearch() {
@@ -582,18 +413,12 @@ public class ImprovedMultilevelIndexController {
 
             SearchResult result = performMultilevelSearch(searchId, false);
 
-            if (result.record != null) {
-                int position = dataRecords.indexOf(result.record);
-                if (position < 1000 || dataRecords.size() <= 50000) {
-                    view.highlightFoundRecord(position);
-                }
-
-                int totalBytes = result.getTotalBytesRead(blockSizeBytes, dataRecordSizeBytes);
+            if (result.foundRecord != null) {
+                view.highlightFoundRecord(result.dataPosition);
                 view.setResultMessage(String.format(
-                        "ID %,d encontrado: %s, %d años | Niveles: %d accesos | Datos: %d accesos | Total: %,d bytes",
-                        searchId, result.record.getName(), result.record.getAge(),
-                        result.levelAccesses.stream().mapToInt(Integer::intValue).sum(),
-                        result.dataAccesses, totalBytes), true);
+                        "ID %d encontrado: %s, %d años (Niveles accedidos: %d)",
+                        searchId, result.foundRecord.getName(), result.foundRecord.getAge(),
+                        result.levelsAccessed), true);
             } else {
                 view.setResultMessage("Registro con ID " + searchId + " no encontrado", false);
             }
@@ -618,7 +443,7 @@ public class ImprovedMultilevelIndexController {
             SwingWorker<SearchResult, String> worker = new SwingWorker<SearchResult, String>() {
                 @Override
                 protected SearchResult doInBackground() throws Exception {
-                    publish("Iniciando búsqueda multinivel (" + (totalLevels - 1) + " niveles de índice)...");
+                    publish("Iniciando búsqueda multinivel del ID " + searchId + "...");
                     Thread.sleep(1000);
 
                     return performMultilevelSearch(searchId, true);
@@ -635,26 +460,16 @@ public class ImprovedMultilevelIndexController {
                     try {
                         SearchResult result = get();
 
-                        if (result.record != null) {
-                            int position = dataRecords.indexOf(result.record);
-
-                            if (position < 1000 || dataRecords.size() <= 50000) {
-                                view.highlightFoundRecord(position);
-                            }
-
-                            int totalBytes = result.getTotalBytesRead(blockSizeBytes, dataRecordSizeBytes);
-                            int levelAccesses = result.levelAccesses.stream().mapToInt(Integer::intValue).sum();
-
+                        if (result.foundRecord != null) {
+                            view.highlightFoundRecord(result.dataPosition);
                             view.setResultMessage(String.format(
-                                    "ID %,d encontrado: %s, %d años | Niveles: %d accesos | Datos: %d accesos | " +
-                                            "Total: %,d bytes | Mejora: %.1fx vs secuencial",
-                                    result.record.getId(), result.record.getName(), result.record.getAge(),
-                                    levelAccesses, result.dataAccesses, totalBytes,
-                                    (double) (searchId / 10) * dataRecordSizeBytes / totalBytes), true);
+                                    "ID %d encontrado: %s, %d años (Proceso completado en %d niveles)",
+                                    result.foundRecord.getId(), result.foundRecord.getName(),
+                                    result.foundRecord.getAge(), result.levelsAccessed), true);
                         } else {
                             view.clearHighlights();
-                            view.setResultMessage("Registro no encontrado después de buscar en " +
-                                    (totalLevels - 1) + " niveles", false);
+                            view.setResultMessage("Registro no encontrado después de " +
+                                    result.levelsAccessed + " niveles", false);
                         }
                         view.setSearchProgress("");
                     } catch (Exception e) {
@@ -670,276 +485,126 @@ public class ImprovedMultilevelIndexController {
         }
     }
 
-    private void loadDataFromFile() {
-        dataRecords.clear();
+    private SearchResult performMultilevelSearch(int searchId, boolean animated) {
+        SearchResult result = new SearchResult();
+        result.levelsAccessed = 0;
 
         try {
-            File file = new File("src/utilities/datos-indice-multinivel.txt");
+            int currentPointer = 0;
 
-            if (!file.exists()) {
-                System.err.println("El archivo de datos no existe: " + file.getAbsolutePath());
-                createDefaultData();
-                return;
-            }
+            // Navegar por todos los niveles de índices desde el más alto
+            for (int level = indexLevels.size() - 1; level >= 0; level--) {
+                result.levelsAccessed++;
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split(",");
-                    if (parts.length == 3) {
-                        try {
-                            int id = Integer.parseInt(parts[0].trim());
-                            String name = parts[1].trim();
-                            int age = Integer.parseInt(parts[2].trim());
-                            dataRecords.add(new IndexRecord(id, name, age));
-                        } catch (NumberFormatException e) {
-                            System.err.println("Error al parsear línea: " + line);
-                        }
-                    }
+                if (animated) {
+                    updateSearchProgress("Buscando en nivel " + (level + 1) + " de índices...");
+                    Thread.sleep(800);
                 }
-            }
-        } catch (IOException e) {
-            System.err.println("Error al leer el archivo: " + e.getMessage());
-            createDefaultData();
-        }
 
-        Collections.sort(dataRecords, (r1, r2) -> Integer.compare(r1.getId(), r2.getId()));
-    }
-
-    private void createDefaultData() {
-        dataRecords.clear();
-        String[] names = {"Ana", "Carlos", "María", "José", "Laura", "Pedro", "Sofía", "Diego",
-                "Carmen", "Roberto", "Elena", "Miguel", "Isabel", "Andrés", "Patricia"};
-
-        for (int i = 0; i < recordCount; i++) {
-            int id = (i + 1) * 10;
-            String name = names[i % names.length] + (i + 1);
-            int age = 20 + (i * 2);
-            dataRecords.add(new IndexRecord(id, name, age));
-        }
-
-        saveDataToFile();
-    }
-
-    private void saveDataToFile() {
-        try {
-            File directory = new File("src/utilities");
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            File file = new File("src/utilities/datos-indice-multinivel.txt");
-            try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
-                for (IndexRecord record : dataRecords) {
-                    writer.println(record.getId() + "," + record.getName() + "," + record.getAge());
+                int indexPosition = findInIndexLevel(searchId, level, currentPointer, animated);
+                if (indexPosition == -1) {
+                    return result; // No encontrado
                 }
+
+                // Obtener el puntero para el siguiente nivel
+                currentPointer = indexLevels.get(level).get(indexPosition).getPointer();
             }
-        } catch (IOException e) {
-            System.err.println("Error al escribir en el archivo: " + e.getMessage());
-            e.printStackTrace();
+
+            // Buscar en los datos
+            result.levelsAccessed++;
+
+            if (animated) {
+                updateSearchProgress("Buscando en registros de datos...");
+                Thread.sleep(800);
+            }
+
+            SimpleRecord foundRecord = findInData(searchId, currentPointer, animated);
+            if (foundRecord != null) {
+                result.foundRecord = foundRecord;
+                result.dataPosition = dataRecords.indexOf(foundRecord);
+            }
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
+
+        return result;
     }
 
-    private void generateNewData(int recordCount) {
-        dataRecords.clear();
+    private int findInIndexLevel(int searchId, int level, int startPointer, boolean animated) throws InterruptedException {
+        List<SimpleIndex> currentLevel = indexLevels.get(level);
 
-        String[] names = {"Ana", "Carlos", "María", "José", "Laura", "Pedro", "Sofía", "Diego",
-                "Carmen", "Roberto", "Elena", "Miguel", "Isabel", "Andrés", "Patricia",
-                "Lucía", "Fernando", "Valeria", "Ricardo", "Natalia"};
+        // Para el nivel más alto, empezamos desde 0
+        // Para niveles inferiores, usamos el startPointer del nivel superior
+        int startIndex = (level == indexLevels.size() - 1) ? 0 : startPointer;
+        int endIndex = Math.min(startIndex + indexPerBlock, currentLevel.size());
 
-        for (int i = 1; i <= recordCount; i++) {
-            String name = names[(i - 1) % names.length];
-            int age = 18 + (i % 50);
-            dataRecords.add(new IndexRecord(i * 10, name + i, age));
+        for (int i = startIndex; i < endIndex; i++) {
+            if (animated) {
+                view.highlightIndexRecord(level, i);
+                updateSearchProgress("Revisando índice nivel " + (level + 1) +
+                        ", entrada " + (i + 1) + " (valor: " + currentLevel.get(i).getValue() +
+                        ") → apunta a " + currentLevel.get(i).getTargetType());
+                Thread.sleep(600);
+            }
 
-            if (recordCount > 100000 && i % 50000 == 0) {
-                System.out.println("Generados " + String.format("%,d", i) + " de " + String.format("%,d", recordCount) + " registros...");
+            // Encontrar el índice correcto basado en el valor
+            // Si es el último del rango o el siguiente valor es mayor, este es el correcto
+            if (i == endIndex - 1 ||
+                    (i + 1 < currentLevel.size() && searchId < currentLevel.get(i + 1).getValue())) {
+                if (animated) {
+                    updateSearchProgress("✓ Encontrado en nivel " + (level + 1) +
+                            ": valor " + currentLevel.get(i).getValue() +
+                            " → siguiente nivel");
+                    Thread.sleep(400);
+                }
+                return i;
             }
         }
 
-        Collections.sort(dataRecords, (r1, r2) -> Integer.compare(r1.getId(), r2.getId()));
-        saveDataToFile();
+        return -1;
     }
 
-    public void insertRecord(int id, String name, int age) throws IllegalArgumentException {
-        for (IndexRecord record : dataRecords) {
-            if (record.getId() == id) {
-                throw new IllegalArgumentException("El ID " + id + " ya existe en los registros");
+    private SimpleRecord findInData(int searchId, int startPointer, boolean animated) throws InterruptedException {
+        // Para el nivel 1 que apunta directamente a registros
+        if (startPointer < dataRecords.size()) {
+            if (animated) {
+                view.highlightDataRecord(startPointer);
+                updateSearchProgress("Revisando registro " + (startPointer + 1) +
+                        " (ID: " + dataRecords.get(startPointer).getId() + ")");
+                Thread.sleep(600);
+            }
+
+            if (dataRecords.get(startPointer).getId() == searchId) {
+                return dataRecords.get(startPointer);
             }
         }
 
-        dataRecords.add(new IndexRecord(id, name, age));
-        Collections.sort(dataRecords, (r1, r2) -> Integer.compare(r1.getId(), r2.getId()));
-
-        // Recalculate levels and configuration
-        calculateConfiguration();
-
-        saveDataToFile();
-        buildAllIndexLevels();
-        displayDataInTables();
-
-        view.setResultMessage("Registro insertado correctamente. Niveles recalculados: " + (totalLevels - 1), true);
+        return null;
     }
 
-    public void deleteRecord(int id) {
-        boolean found = false;
-        for (int i = 0; i < dataRecords.size(); i++) {
-            if (dataRecords.get(i).getId() == id) {
-                dataRecords.remove(i);
-                found = true;
-                break;
-            }
-        }
-
-        if (found) {
-            // Recalcute the configuration and levels
-            recordCount = dataRecords.size();
-            calculateConfiguration();
-
-            saveDataToFile();
-            buildAllIndexLevels();
-            displayDataInTables();
-            view.setResultMessage("Registro eliminado correctamente. Niveles recalculados: " + (totalLevels - 1), true);
-        } else {
-            view.setResultMessage("Registro con ID " + id + " no encontrado", false);
-        }
+    private void updateSearchProgress(String message) {
+        SwingUtilities.invokeLater(() -> view.setSearchProgress(message));
     }
 
     private void goBack() {
         view.dispose();
-
-        // Show the parent view based on navigation configuration
         if (indicesMenuView != null) {
             indicesMenuView.setVisible(true);
-        } else if (algorithmMenuView != null) {
-            try {
-                algorithmMenuView.getClass().getMethod("setVisible", boolean.class).invoke(algorithmMenuView, true);
-            } catch (Exception e) {
-                System.err.println("Error calling setVisible on algorithmMenuView: " + e.getMessage());
-            }
-        } else {
-            // Fallback: si no hay navegación configurada, mostrar mensaje
-            System.out.println("Cerrando vista de índices multinivel - no hay vista padre configurada");
         }
     }
 
-    // Setter methods for navigation
     public void setIndicesMenuView(IndicesMenuView indicesMenuView) {
         this.indicesMenuView = indicesMenuView;
     }
 
-    public void setAlgorithmMenuView(Object algorithmMenuView) {
-        this.algorithmMenuView = algorithmMenuView;
-    }
-
-    /**
-     * Class for calculating multilevel index structure
-     */
-    public static class MultilevelCalculator {
-        public static int calculateRequiredLevels(int totalRecords,
-                                                  int dataRecordsPerBlock,
-                                                  int indexRecordsPerBlock) {
-            if (totalRecords <= 0) return 1;
-
-            int currentBlocks = (int) Math.ceil((double) totalRecords / dataRecordsPerBlock);
-            int levels = 1;
-
-            while (currentBlocks > indexRecordsPerBlock) {
-                currentBlocks = (int) Math.ceil((double) currentBlocks / indexRecordsPerBlock);
-                levels++;
-            }
-
-            return levels;
-        }
-
-        public static void printIndexStructure(int totalRecords,
-                                               int dataRecordsPerBlock,
-                                               int indexRecordsPerBlock) {
-            System.out.println("\n=== ESTRUCTURA DE ÍNDICES MULTINIVEL ===");
-
-            int currentBlocks = (int) Math.ceil((double) totalRecords / dataRecordsPerBlock);
-            int level = 0;
-
-            System.out.printf("Nivel %d (Datos): %,d registros en %,d bloques%n",
-                    level, totalRecords, currentBlocks);
-
-            level = 1;
-            while (currentBlocks > indexRecordsPerBlock) {
-                int indexEntries = currentBlocks;
-                currentBlocks = (int) Math.ceil((double) currentBlocks / indexRecordsPerBlock);
-
-                System.out.printf("Nivel %d (Índice): %,d entradas en %,d bloques%n",
-                        level, indexEntries, currentBlocks);
-                level++;
-            }
-
-            if (currentBlocks > 1) {
-                System.out.printf("Nivel %d (Índice Raíz): %,d entradas en 1 bloque%n",
-                        level, currentBlocks);
-            }
-
-            System.out.printf("Total de niveles: %d%n", level + 1);
-            System.out.println("=======================================\n");
-        }
-    }
-
-    /**
-     * Class to represent an index level in the multilevel index structure
-     */
-    public static class IndexLevel {
-        private int level;
-        private int blockId;
-        private int firstKey;
-        private int lastKey;
-        private int pointer;
-        private String targetType;
-
-        public IndexLevel(int level, int blockId, int firstKey, int lastKey, int pointer, String targetType) {
-            this.level = level;
-            this.blockId = blockId;
-            this.firstKey = firstKey;
-            this.lastKey = lastKey;
-            this.pointer = pointer;
-            this.targetType = targetType;
-        }
-
-        // Getters
-        public int getLevel() { return level; }
-        public int getBlockId() { return blockId; }
-        public int getFirstKey() { return firstKey; }
-        public int getLastKey() { return lastKey; }
-        public int getPointer() { return pointer; }
-        public String getTargetType() { return targetType; }
-    }
-
-    /**
-     * Results of a search operation in the multilevel index
-     */
-    public static class SearchResult {
-        public IndexRecord record = null;
-        public List<Integer> levelAccesses = new ArrayList<>();
-        public int dataAccesses = 0;
-
-        public int getTotalAccesses() {
-            return levelAccesses.stream().mapToInt(Integer::intValue).sum() + dataAccesses;
-        }
-
-        public int getTotalBytesRead(int blockSize, int dataRecordSize) {
-            int indexBytes = levelAccesses.stream().mapToInt(Integer::intValue).sum() * blockSize;
-            int dataBytes = dataAccesses * dataRecordSize;
-            return indexBytes + dataBytes;
-        }
-    }
-
-    /**
-     * Class to represent a record in the index data
-     */
-    public static class IndexRecord {
+    // Clases auxiliares
+    public static class SimpleRecord {
         private int id;
         private String name;
         private int age;
 
-        public IndexRecord(int id, String name, int age) {
+        public SimpleRecord(int id, String name, int age) {
             this.id = id;
             this.name = name;
             this.age = age;
@@ -948,5 +613,27 @@ public class ImprovedMultilevelIndexController {
         public int getId() { return id; }
         public String getName() { return name; }
         public int getAge() { return age; }
+    }
+
+    public static class SimpleIndex {
+        private int value;
+        private int pointer;
+        private String targetType;
+
+        public SimpleIndex(int value, int pointer, String targetType) {
+            this.value = value;
+            this.pointer = pointer;
+            this.targetType = targetType;
+        }
+
+        public int getValue() { return value; }
+        public int getPointer() { return pointer; }
+        public String getTargetType() { return targetType; }
+    }
+
+    public static class SearchResult {
+        public SimpleRecord foundRecord = null;
+        public int dataPosition = -1;
+        public int levelsAccessed = 0;
     }
 }

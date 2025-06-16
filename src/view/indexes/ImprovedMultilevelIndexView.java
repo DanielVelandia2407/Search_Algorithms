@@ -6,6 +6,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ImprovedMultilevelIndexView extends JFrame {
 
@@ -14,21 +16,20 @@ public class ImprovedMultilevelIndexView extends JFrame {
     private JButton btnDeleteRecord;
     private JButton btnInsertRecord;
     private JButton btnBack;
-    private JButton btnShowLevelDetails;
 
     private JTable dataTable;
-    private JTable primaryIndexTable;
-    private JTable secondaryIndexTable;
+    private List<JTable> indexTables; // Lista de tablas de índices para múltiples niveles
+    private List<DefaultTableModel> indexTableModels;
 
     private DefaultTableModel dataTableModel;
-    private DefaultTableModel primaryIndexTableModel;
-    private DefaultTableModel secondaryIndexTableModel;
 
     private JTextField txtSearchValue;
     private JTextField txtRecordCount;
-    private JTextField txtBlockSizeBytes;
-    private JTextField txtDataRecordSizeBytes;
-    private JTextField txtIndexRecordSizeBytes;
+    private JTextField txtBlockSize;
+    private JTextField txtDataRecordSize;
+    private JTextField txtIndexRecordSize;
+    private JTextField txtIndexPerBlock;
+    private JTextField txtDataPerBlock;
     private JTextField txtInsertId;
     private JTextField txtInsertName;
     private JTextField txtInsertAge;
@@ -37,24 +38,25 @@ public class ImprovedMultilevelIndexView extends JFrame {
     private JCheckBox chkVisualizeProcess;
     private JLabel lblResult;
     private JLabel lblSearchProgress;
-    private JLabel lblConfigurationInfo;
-    private JLabel lblStatistics;
-    private JLabel lblLevelInfo;
 
-    // Highlighting variables
+    // Variables para highlighting simplificado
     private int highlightedDataRecord = -1;
-    private int highlightedPrimaryIndex = -1;
-    private int highlightedSecondaryIndex = -1;
+    private List<Integer> highlightedIndexRecords; // Para múltiples niveles de índices
     private int foundRecordIndex = -1;
 
     public ImprovedMultilevelIndexView() {
-        setTitle("Índices Multinivel Dinámicos");
-        setSize(1500, 1000);
+        setTitle("Índices Multinivel - Vista Simplificada");
+        setSize(1400, 900);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(15, 15));
+        setLayout(new BorderLayout(10, 10));
 
-        getContentPane().setBackground(new Color(240, 248, 255));
+        getContentPane().setBackground(new Color(245, 245, 245));
+
+        // Inicializar listas
+        indexTables = new ArrayList<>();
+        indexTableModels = new ArrayList<>();
+        highlightedIndexRecords = new ArrayList<>();
 
         createTopPanel();
         createCenterPanel();
@@ -66,140 +68,174 @@ public class ImprovedMultilevelIndexView extends JFrame {
         topPanel.setBackground(new Color(70, 130, 180));
         topPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
 
-        JPanel titlePanel = new JPanel();
-        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
-        titlePanel.setBackground(new Color(70, 130, 180));
-
-        JLabel lblTitle = new JLabel("Índices Multinivel Dinámicos");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        JLabel lblTitle = new JLabel("Estructura de Índices Multinivel", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 18));
         lblTitle.setForeground(Color.WHITE);
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lblSubtitle = new JLabel("Generación automática de niveles según volumen de datos");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 13));
-        lblSubtitle.setForeground(new Color(240, 248, 255));
-        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        titlePanel.add(lblTitle);
-        titlePanel.add(Box.createRigidArea(new Dimension(0, 8)));
-        titlePanel.add(lblSubtitle);
-
-        // Information labels
-        lblConfigurationInfo = new JLabel("Configuración: Cargando");
-        lblConfigurationInfo.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblConfigurationInfo.setForeground(new Color(240, 248, 255));
-        lblConfigurationInfo.setHorizontalAlignment(SwingConstants.CENTER);
-
-        lblLevelInfo = new JLabel("Estructura de niveles: Calculando");
-        lblLevelInfo.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblLevelInfo.setForeground(new Color(173, 216, 230));
-        lblLevelInfo.setHorizontalAlignment(SwingConstants.CENTER);
-
-        lblStatistics = new JLabel("Estadísticas: Cargando");
-        lblStatistics.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblStatistics.setForeground(new Color(240, 248, 255));
-        lblStatistics.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JPanel infoPanel = new JPanel(new GridLayout(3, 1, 5, 5));
-        infoPanel.setBackground(new Color(70, 130, 180));
-        infoPanel.add(lblConfigurationInfo);
-        infoPanel.add(lblLevelInfo);
-        infoPanel.add(lblStatistics);
-
-        topPanel.add(titlePanel, BorderLayout.CENTER);
-        topPanel.add(infoPanel, BorderLayout.SOUTH);
-
+        topPanel.add(lblTitle, BorderLayout.CENTER);
         add(topPanel, BorderLayout.NORTH);
     }
 
     private void createCenterPanel() {
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
-        centerPanel.setBackground(new Color(240, 248, 255));
-        centerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        JPanel centerPanel = new JPanel(new BorderLayout(15, 15));
+        centerPanel.setBackground(new Color(245, 245, 245));
+        centerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Create tabbed pane for the tables
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        // Panel principal con scroll para las estructuras
+        JPanel structuresPanel = new JPanel();
+        structuresPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        structuresPanel.setBackground(new Color(245, 245, 245));
 
-        // Tabla de Índice de Nivel Superior (antes "Secundario")
-        JPanel upperLevelPanel = createTablePanel("Índice de Nivel Superior");
-        secondaryIndexTableModel = new DefaultTableModel(
-                new Object[]{"Nivel-Bloque", "Clave Min", "Clave Max", "Puntero", "Registros", "Utilización", "Apunta a"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        secondaryIndexTable = createStyledTable(secondaryIndexTableModel);
-        JScrollPane upperLevelScrollPane = new JScrollPane(secondaryIndexTable);
-        upperLevelScrollPane.setPreferredSize(new Dimension(0, 400));
-        upperLevelPanel.add(upperLevelScrollPane, BorderLayout.CENTER);
-        tabbedPane.addTab("Nivel Superior", upperLevelPanel);
+        JScrollPane structuresScrollPane = new JScrollPane(structuresPanel);
+        structuresScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        structuresScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        structuresScrollPane.setPreferredSize(new Dimension(900, 450));
+        structuresScrollPane.getHorizontalScrollBar().setUnitIncrement(16);
 
-        // Table of Primary Index (before "Primario")
-        JPanel primaryPanel = createTablePanel("Índice Primario (Nivel 1)");
-        primaryIndexTableModel = new DefaultTableModel(
-                new Object[]{"Nivel-Bloque", "Clave Min", "Clave Max", "Puntero", "Registros", "Utilización", "Apunta a"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        primaryIndexTable = createStyledTable(primaryIndexTableModel);
-        JScrollPane primaryScrollPane = new JScrollPane(primaryIndexTable);
-        primaryScrollPane.setPreferredSize(new Dimension(0, 400));
-        primaryPanel.add(primaryScrollPane, BorderLayout.CENTER);
-        tabbedPane.addTab("Índice Primario", primaryPanel);
+        // Inicialmente mostrar solo mensaje de "Configurar primero"
+        JLabel lblConfigFirst = new JLabel("<html><center>Presione 'Generar Estructura'<br>para crear las tablas de índices</center></html>");
+        lblConfigFirst.setFont(new Font("Arial", Font.ITALIC, 14));
+        lblConfigFirst.setForeground(Color.GRAY);
+        lblConfigFirst.setHorizontalAlignment(SwingConstants.CENTER);
+        structuresPanel.add(lblConfigFirst);
 
-        // Table of Data Records (before "Datos")
-        JPanel dataPanel = createTablePanel("Datos (Nivel 0)");
-        dataTableModel = new DefaultTableModel(
-                new Object[]{"Bloque", "Pos. Bloque", "ID", "Nombre", "Edad"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        dataTable = createStyledTable(dataTableModel);
-        JScrollPane dataScrollPane = new JScrollPane(dataTable);
-        dataScrollPane.setPreferredSize(new Dimension(0, 400));
-        dataPanel.add(dataScrollPane, BorderLayout.CENTER);
-        tabbedPane.addTab("Datos", dataPanel);
+        centerPanel.add(structuresScrollPane, BorderLayout.CENTER);
 
-        centerPanel.add(tabbedPane, BorderLayout.CENTER);
-
-        // Panel of controls on the right side
+        // Panel de controles en la parte derecha
         JPanel controlPanel = createControlPanel();
         centerPanel.add(controlPanel, BorderLayout.EAST);
 
         add(centerPanel, BorderLayout.CENTER);
     }
 
-    private JPanel createTablePanel(String title) {
+    private void createDataPanel(JPanel parent) {
+        // Este método ya no se necesita porque creamos los datos directamente en recreateIndexPanels
+    }
+
+    public void recreateIndexPanels(int numLevels) {
+        JScrollPane scrollPane = (JScrollPane) ((JPanel) getContentPane().getComponent(1)).getComponent(0);
+        JPanel structuresPanel = (JPanel) scrollPane.getViewport().getView();
+
+        // Limpiar paneles existentes
+        structuresPanel.removeAll();
+        indexTables.clear();
+        indexTableModels.clear();
+        highlightedIndexRecords.clear();
+
+        System.out.println("=== RECREANDO VISTA PARA " + numLevels + " NIVELES ===");
+
+        // Crear paneles de índices (de mayor a menor nivel)
+        for (int level = numLevels; level >= 1; level--) {
+            String title = "Estructura Nivel " + level;
+            String subtitle;
+
+            if (level == numLevels && numLevels > 1) {
+                subtitle = "Índice Raíz"; // El nivel más alto
+            } else if (level == 1) {
+                subtitle = "Índice Primario"; // El nivel más bajo (apunta a datos)
+            } else {
+                subtitle = "Índice Nivel " + level; // Niveles intermedios
+            }
+
+            JPanel indexPanel = createLevelPanel(title, subtitle);
+
+            DefaultTableModel indexModel = new DefaultTableModel(
+                    new Object[]{"Ind", "Apunta"}, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            JTable indexTable = createSimpleTable(indexModel, level - 1); // 0-based para highlighting
+            indexTable.setPreferredSize(new Dimension(200, 300));
+            JScrollPane indexScrollPane = new JScrollPane(indexTable);
+            indexScrollPane.setPreferredSize(new Dimension(200, 300));
+            indexPanel.add(indexScrollPane, BorderLayout.CENTER);
+
+            indexTables.add(indexTable);
+            indexTableModels.add(indexModel);
+            highlightedIndexRecords.add(-1);
+
+            structuresPanel.add(indexPanel);
+
+            System.out.println("✓ Creada tabla para " + title + " (" + subtitle + ")");
+        }
+
+        // Crear panel de datos al final
+        JPanel dataPanel = createLevelPanel("FICHERO", "Datos");
+        dataTableModel = new DefaultTableModel(
+                new Object[]{"PK", "Nombre", "Edad"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        dataTable = createSimpleTable(dataTableModel, -1); // -1 para datos
+        dataTable.setPreferredSize(new Dimension(200, 300));
+        JScrollPane dataScrollPane = new JScrollPane(dataTable);
+        dataScrollPane.setPreferredSize(new Dimension(200, 300));
+        dataPanel.add(dataScrollPane, BorderLayout.CENTER);
+
+        structuresPanel.add(dataPanel);
+        System.out.println("✓ Creada tabla de DATOS");
+
+        System.out.println("=== TOTAL: " + (numLevels + 1) + " TABLAS CREADAS ===");
+        System.out.println("  - " + numLevels + " tablas de índices");
+        System.out.println("  - 1 tabla de datos");
+
+        structuresPanel.revalidate();
+        structuresPanel.repaint();
+
+        // Forzar actualización del scroll
+        SwingUtilities.invokeLater(() -> {
+            scrollPane.getHorizontalScrollBar().setValue(0);
+            scrollPane.revalidate();
+            scrollPane.repaint();
+        });
+    }
+
+    private JPanel createLevelPanel(String title, String subtitle) {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBackground(new Color(240, 248, 255));
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.setBackground(new Color(245, 245, 245));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 100, 100), 2),
+                new EmptyBorder(10, 10, 10, 10)
+        ));
+        panel.setPreferredSize(new Dimension(220, 380)); // Tamaño fijo para consistencia
 
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        titleLabel.setForeground(new Color(70, 130, 180));
-        panel.add(titleLabel, BorderLayout.NORTH);
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        titlePanel.setBackground(new Color(245, 245, 245));
 
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 14));
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel lblSubtitle = new JLabel(subtitle);
+        lblSubtitle.setFont(new Font("Arial", Font.ITALIC, 11));
+        lblSubtitle.setForeground(Color.GRAY);
+        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        titlePanel.add(lblTitle);
+        titlePanel.add(lblSubtitle);
+
+        panel.add(titlePanel, BorderLayout.NORTH);
         return panel;
     }
 
-    private JTable createStyledTable(DefaultTableModel model) {
+    private JTable createSimpleTable(DefaultTableModel model, int levelIndex) {
         JTable table = new JTable(model);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        table.setRowHeight(22);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
-        table.getTableHeader().setBackground(new Color(41, 128, 185));
-        table.getTableHeader().setForeground(Color.WHITE);
+        table.setFont(new Font("Arial", Font.PLAIN, 12));
+        table.setRowHeight(25);
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        table.getTableHeader().setBackground(new Color(200, 220, 240));
+        table.getTableHeader().setForeground(Color.BLACK);
 
-        table.setAutoCreateRowSorter(false);
-        table.setFillsViewportHeight(true);
+        table.setGridColor(new Color(180, 180, 180));
+        table.setShowGrid(true);
 
-        // Custom cell renderer para highlighting
+        // Renderer para highlighting
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -210,30 +246,37 @@ public class ImprovedMultilevelIndexView extends JFrame {
                 // Data table highlighting
                 if (table == dataTable) {
                     if (row == foundRecordIndex && foundRecordIndex != -1) {
-                        c.setBackground(new Color(150, 255, 150));
+                        c.setBackground(new Color(144, 238, 144)); // Verde claro
                         c.setForeground(Color.BLACK);
                     } else if (row == highlightedDataRecord && highlightedDataRecord != -1) {
-                        c.setBackground(new Color(255, 255, 150));
+                        c.setBackground(new Color(255, 255, 150)); // Amarillo
                         c.setForeground(Color.BLACK);
                     } else {
                         c.setBackground(Color.WHITE);
                         c.setForeground(Color.BLACK);
                     }
                 }
-                // Primary index highlighting
-                else if (table == primaryIndexTable) {
-                    if (row == highlightedPrimaryIndex && highlightedPrimaryIndex != -1) {
-                        c.setBackground(new Color(173, 216, 230));
-                        c.setForeground(Color.BLACK);
-                    } else {
-                        c.setBackground(Color.WHITE);
-                        c.setForeground(Color.BLACK);
+                // Index tables highlighting
+                else {
+                    // Encontrar qué tabla de índice es esta
+                    int tableIndex = -1;
+                    for (int i = 0; i < indexTables.size(); i++) {
+                        if (table == indexTables.get(i)) {
+                            tableIndex = i;
+                            break;
+                        }
                     }
-                }
-                // Secondary/Upper level index highlighting
-                else if (table == secondaryIndexTable) {
-                    if (row == highlightedSecondaryIndex && highlightedSecondaryIndex != -1) {
-                        c.setBackground(new Color(255, 182, 193));
+
+                    if (tableIndex != -1 && tableIndex < highlightedIndexRecords.size() &&
+                            row == highlightedIndexRecords.get(tableIndex) && highlightedIndexRecords.get(tableIndex) != -1) {
+                        Color[] colors = {
+                                new Color(173, 216, 230), // Azul claro
+                                new Color(255, 182, 193), // Rosa claro
+                                new Color(221, 160, 221), // Violeta claro
+                                new Color(255, 218, 185), // Naranja claro
+                                new Color(152, 251, 152)  // Verde menta
+                        };
+                        c.setBackground(colors[tableIndex % colors.length]);
                         c.setForeground(Color.BLACK);
                     } else {
                         c.setBackground(Color.WHITE);
@@ -241,6 +284,7 @@ public class ImprovedMultilevelIndexView extends JFrame {
                     }
                 }
 
+                setHorizontalAlignment(SwingConstants.CENTER);
                 return c;
             }
         });
@@ -251,102 +295,96 @@ public class ImprovedMultilevelIndexView extends JFrame {
     private JPanel createControlPanel() {
         JPanel controlPanel = new JPanel();
         controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
-        controlPanel.setBackground(new Color(240, 248, 255));
-        controlPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        controlPanel.setPreferredSize(new Dimension(400, 0));
+        controlPanel.setBackground(new Color(245, 245, 245));
+        controlPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        controlPanel.setPreferredSize(new Dimension(300, 0));
 
-        // Section of advanced configuration
-        JPanel configSection = createSectionPanel("Configuración Técnica Avanzada");
+        // Configuración
+        JPanel configSection = createSectionPanel("Configuración");
 
         JPanel recordCountPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        recordCountPanel.setBackground(new Color(240, 248, 255));
-        JLabel lblRecordCount = new JLabel("Núm. registros:");
-        lblRecordCount.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        recordCountPanel.setBackground(new Color(245, 245, 245));
+        JLabel lblRecordCount = new JLabel("Número de registros:");
         txtRecordCount = new JTextField(8);
-        txtRecordCount.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         txtRecordCount.setText("15");
-        txtRecordCount.setToolTipText("Niveles calculados automáticamente según volumen");
         recordCountPanel.add(lblRecordCount);
         recordCountPanel.add(txtRecordCount);
 
         JPanel blockSizePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        blockSizePanel.setBackground(new Color(240, 248, 255));
+        blockSizePanel.setBackground(new Color(245, 245, 245));
         JLabel lblBlockSize = new JLabel("Tamaño bloque (bytes):");
-        lblBlockSize.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        txtBlockSizeBytes = new JTextField(8);
-        txtBlockSizeBytes.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        txtBlockSizeBytes.setText("1024");
-        txtBlockSizeBytes.setToolTipText("Afecta registros por bloque y niveles necesarios");
+        txtBlockSize = new JTextField(8);
+        txtBlockSize.setText("1024");
         blockSizePanel.add(lblBlockSize);
-        blockSizePanel.add(txtBlockSizeBytes);
+        blockSizePanel.add(txtBlockSize);
 
         JPanel dataRecordSizePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        dataRecordSizePanel.setBackground(new Color(240, 248, 255));
-        JLabel lblDataRecordSize = new JLabel("Tamaño reg. datos (bytes):");
-        lblDataRecordSize.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        txtDataRecordSizeBytes = new JTextField(8);
-        txtDataRecordSizeBytes.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        txtDataRecordSizeBytes.setText("64");
-        txtDataRecordSizeBytes.setToolTipText("Determina registros de datos por bloque");
+        dataRecordSizePanel.setBackground(new Color(245, 245, 245));
+        JLabel lblDataRecordSize = new JLabel("Tamaño reg. dato (bytes):");
+        txtDataRecordSize = new JTextField(8);
+        txtDataRecordSize.setText("64");
         dataRecordSizePanel.add(lblDataRecordSize);
-        dataRecordSizePanel.add(txtDataRecordSizeBytes);
+        dataRecordSizePanel.add(txtDataRecordSize);
 
         JPanel indexRecordSizePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        indexRecordSizePanel.setBackground(new Color(240, 248, 255));
+        indexRecordSizePanel.setBackground(new Color(245, 245, 245));
         JLabel lblIndexRecordSize = new JLabel("Tamaño reg. índice (bytes):");
-        lblIndexRecordSize.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        txtIndexRecordSizeBytes = new JTextField(8);
-        txtIndexRecordSizeBytes.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        txtIndexRecordSizeBytes.setText("12");
-        txtIndexRecordSizeBytes.setToolTipText("Determina registros de índice por bloque");
+        txtIndexRecordSize = new JTextField(8);
+        txtIndexRecordSize.setText("12");
         indexRecordSizePanel.add(lblIndexRecordSize);
-        indexRecordSizePanel.add(txtIndexRecordSizeBytes);
+        indexRecordSizePanel.add(txtIndexRecordSize);
 
-        btnConfigure = createStyledButton("Aplicar Configuración", new Color(46, 204, 113));
-        btnShowLevelDetails = createStyledButton("Ver Detalles Niveles", new Color(142, 68, 173));
+        JPanel indexPerBlockPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        indexPerBlockPanel.setBackground(new Color(245, 245, 245));
+        JLabel lblIndexPerBlock = new JLabel("Registros índice/bloque:");
+        txtIndexPerBlock = new JTextField(8);
+        txtIndexPerBlock.setText("85");
+        indexPerBlockPanel.add(lblIndexPerBlock);
+        indexPerBlockPanel.add(txtIndexPerBlock);
+
+        JPanel dataPerBlockPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        dataPerBlockPanel.setBackground(new Color(245, 245, 245));
+        JLabel lblDataPerBlock = new JLabel("Registros dato/bloque:");
+        txtDataPerBlock = new JTextField(8);
+        txtDataPerBlock.setText("16");
+        dataPerBlockPanel.add(lblDataPerBlock);
+        dataPerBlockPanel.add(txtDataPerBlock);
+
+        btnConfigure = createStyledButton("Generar Estructura", new Color(46, 125, 50));
 
         configSection.add(recordCountPanel);
         configSection.add(blockSizePanel);
         configSection.add(dataRecordSizePanel);
         configSection.add(indexRecordSizePanel);
+        configSection.add(indexPerBlockPanel);
+        configSection.add(dataPerBlockPanel);
         configSection.add(btnConfigure);
-        configSection.add(Box.createRigidArea(new Dimension(0, 5)));
-        configSection.add(btnShowLevelDetails);
 
         controlPanel.add(configSection);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Section of insertion of records
+        // Inserción
         JPanel insertSection = createSectionPanel("Insertar Registro");
 
         JPanel insertIdPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        insertIdPanel.setBackground(new Color(240, 248, 255));
-        JLabel lblInsertId = new JLabel("ID:");
-        lblInsertId.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        insertIdPanel.setBackground(new Color(245, 245, 245));
+        insertIdPanel.add(new JLabel("ID:"));
         txtInsertId = new JTextField(8);
-        txtInsertId.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        insertIdPanel.add(lblInsertId);
         insertIdPanel.add(txtInsertId);
 
         JPanel insertNamePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        insertNamePanel.setBackground(new Color(240, 248, 255));
-        JLabel lblInsertName = new JLabel("Nombre:");
-        lblInsertName.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        insertNamePanel.setBackground(new Color(245, 245, 245));
+        insertNamePanel.add(new JLabel("Nombre:"));
         txtInsertName = new JTextField(10);
-        txtInsertName.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        insertNamePanel.add(lblInsertName);
         insertNamePanel.add(txtInsertName);
 
         JPanel insertAgePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        insertAgePanel.setBackground(new Color(240, 248, 255));
-        JLabel lblInsertAge = new JLabel("Edad:");
-        lblInsertAge.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        insertAgePanel.setBackground(new Color(245, 245, 245));
+        insertAgePanel.add(new JLabel("Edad:"));
         txtInsertAge = new JTextField(8);
-        txtInsertAge.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        insertAgePanel.add(lblInsertAge);
         insertAgePanel.add(txtInsertAge);
 
-        btnInsertRecord = createStyledButton("Insertar", new Color(41, 128, 185));
+        btnInsertRecord = createStyledButton("Insertar", new Color(33, 150, 243));
 
         insertSection.add(insertIdPanel);
         insertSection.add(insertNamePanel);
@@ -356,57 +394,42 @@ public class ImprovedMultilevelIndexView extends JFrame {
         controlPanel.add(insertSection);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Section of search
-        JPanel searchSection = createSectionPanel("Búsqueda Multinivel");
+        // Búsqueda
+        JPanel searchSection = createSectionPanel("Búsqueda");
 
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setBackground(new Color(240, 248, 255));
-        JLabel lblSearch = new JLabel("ID a buscar:");
-        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        searchPanel.setBackground(new Color(245, 245, 245));
+        searchPanel.add(new JLabel("ID a buscar:"));
         txtSearchValue = new JTextField(8);
-        txtSearchValue.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        searchPanel.add(lblSearch);
         searchPanel.add(txtSearchValue);
 
-        JPanel visualizationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        visualizationPanel.setBackground(new Color(240, 248, 255));
-        chkVisualizeProcess = new JCheckBox("Visualizar proceso multinivel");
-        chkVisualizeProcess.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        chkVisualizeProcess.setBackground(new Color(240, 248, 255));
+        chkVisualizeProcess = new JCheckBox("Visualizar proceso");
+        chkVisualizeProcess.setBackground(new Color(245, 245, 245));
         chkVisualizeProcess.setSelected(true);
-        chkVisualizeProcess.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        chkVisualizeProcess.setToolTipText("Visualización paso a paso por todos los niveles");
-        visualizationPanel.add(chkVisualizeProcess);
 
-        btnSearch = createStyledButton("Buscar", new Color(41, 128, 185));
+        btnSearch = createStyledButton("Buscar", new Color(33, 150, 243));
 
-        // Label for search progress
         lblSearchProgress = new JLabel("");
-        lblSearchProgress.setFont(new Font("Segoe UI", Font.ITALIC, 10));
-        lblSearchProgress.setForeground(new Color(70, 130, 180));
-        lblSearchProgress.setHorizontalAlignment(SwingConstants.LEFT);
+        lblSearchProgress.setFont(new Font("Arial", Font.ITALIC, 10));
 
         searchSection.add(searchPanel);
-        searchSection.add(visualizationPanel);
+        searchSection.add(chkVisualizeProcess);
         searchSection.add(btnSearch);
         searchSection.add(lblSearchProgress);
 
         controlPanel.add(searchSection);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Section of deletion of records
+        // Eliminación
         JPanel deleteSection = createSectionPanel("Eliminar Registro");
 
         JPanel deletePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        deletePanel.setBackground(new Color(240, 248, 255));
-        JLabel lblDelete = new JLabel("ID a eliminar:");
-        lblDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        deletePanel.setBackground(new Color(245, 245, 245));
+        deletePanel.add(new JLabel("ID a eliminar:"));
         txtDeleteId = new JTextField(8);
-        txtDeleteId.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        deletePanel.add(lblDelete);
         deletePanel.add(txtDeleteId);
 
-        btnDeleteRecord = createStyledButton("Eliminar", new Color(231, 76, 60));
+        btnDeleteRecord = createStyledButton("Eliminar", new Color(244, 67, 54));
 
         deleteSection.add(deletePanel);
         deleteSection.add(btnDeleteRecord);
@@ -414,26 +437,17 @@ public class ImprovedMultilevelIndexView extends JFrame {
         controlPanel.add(deleteSection);
         controlPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        // Label for results
+        // Resultado
         lblResult = new JLabel("");
-        lblResult.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblResult.setHorizontalAlignment(SwingConstants.LEFT);
+        lblResult.setFont(new Font("Arial", Font.BOLD, 11));
         lblResult.setBorder(new EmptyBorder(10, 0, 10, 0));
 
-        JPanel resultPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        resultPanel.setBackground(new Color(240, 248, 255));
-        resultPanel.add(lblResult);
-
-        controlPanel.add(resultPanel);
+        controlPanel.add(lblResult);
         controlPanel.add(Box.createVerticalGlue());
 
-        // Button panel for actions
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(new Color(240, 248, 255));
-        btnBack = createStyledButton("Volver", new Color(231, 76, 60));
-        buttonPanel.add(btnBack);
-
-        controlPanel.add(buttonPanel);
+        // Botón volver
+        btnBack = createStyledButton("Volver", new Color(158, 158, 158));
+        controlPanel.add(btnBack);
 
         return controlPanel;
     }
@@ -441,26 +455,26 @@ public class ImprovedMultilevelIndexView extends JFrame {
     private JPanel createSectionPanel(String title) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(new Color(240, 248, 255));
+        panel.setBackground(new Color(245, 245, 245));
         panel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(41, 128, 185), 1),
+                BorderFactory.createLineBorder(new Color(100, 100, 100), 1),
                 title,
                 0, 0,
-                new Font("Segoe UI", Font.BOLD, 12),
-                new Color(41, 128, 185)
+                new Font("Arial", Font.BOLD, 11),
+                Color.BLACK
         ));
         return panel;
     }
 
     private JButton createStyledButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setFont(new Font("Arial", Font.BOLD, 11));
         button.setBackground(backgroundColor);
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setPreferredSize(new Dimension(160, 28));
+        button.setPreferredSize(new Dimension(150, 25));
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
         return button;
     }
@@ -470,15 +484,15 @@ public class ImprovedMultilevelIndexView extends JFrame {
         bottomPanel.setBackground(new Color(220, 220, 220));
         bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel lblInfo = new JLabel("© 2025 - Simulación Avanzada de Índices Multinivel Dinámicos - Grupo 1");
-        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        JLabel lblInfo = new JLabel("Vista Simplificada de Índices Multinivel - Propósito Educativo");
+        lblInfo.setFont(new Font("Arial", Font.PLAIN, 12));
         lblInfo.setForeground(new Color(100, 100, 100));
 
         bottomPanel.add(lblInfo);
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    // Methods to add action listeners for buttons
+    // Métodos para agregar listeners
     public void addConfigureListener(ActionListener listener) {
         btnConfigure.addActionListener(listener);
     }
@@ -499,11 +513,7 @@ public class ImprovedMultilevelIndexView extends JFrame {
         btnBack.addActionListener(listener);
     }
 
-    public void addShowLevelDetailsListener(ActionListener listener) {
-        btnShowLevelDetails.addActionListener(listener);
-    }
-
-    // Getters for input values
+    // Getters para valores de entrada
     public String getSearchValue() {
         return txtSearchValue.getText().trim();
     }
@@ -512,16 +522,24 @@ public class ImprovedMultilevelIndexView extends JFrame {
         return txtRecordCount.getText().trim();
     }
 
-    public String getBlockSizeBytes() {
-        return txtBlockSizeBytes.getText().trim();
+    public String getBlockSize() {
+        return txtBlockSize.getText().trim();
     }
 
-    public String getDataRecordSizeBytes() {
-        return txtDataRecordSizeBytes.getText().trim();
+    public String getDataRecordSize() {
+        return txtDataRecordSize.getText().trim();
     }
 
-    public String getIndexRecordSizeBytes() {
-        return txtIndexRecordSizeBytes.getText().trim();
+    public String getIndexRecordSize() {
+        return txtIndexRecordSize.getText().trim();
+    }
+
+    public String getIndexPerBlock() {
+        return txtIndexPerBlock.getText().trim();
+    }
+
+    public String getDataPerBlock() {
+        return txtDataPerBlock.getText().trim();
     }
 
     public String getInsertId() {
@@ -540,67 +558,29 @@ public class ImprovedMultilevelIndexView extends JFrame {
         return txtDeleteId.getText().trim();
     }
 
-    // Methods to set messages and information
-    public void setResultMessage(String message, boolean isSuccess) {
-        lblResult.setText("<html><div style='width: 350px;'>" + message + "</div></html>");
-        lblResult.setForeground(isSuccess ? new Color(46, 125, 50) : new Color(198, 40, 40));
+    public boolean isVisualizationEnabled() {
+        return chkVisualizeProcess.isSelected();
     }
 
-    public void setSearchProgress(String message) {
-        lblSearchProgress.setText("<html><div style='width: 350px;'>" + message + "</div></html>");
-    }
-
-    public void setConfigurationInfo(String configInfo) {
-        lblConfigurationInfo.setText("<html><div style='width: 1200px; text-align: center;'>" + configInfo + "</div></html>");
-    }
-
-    public void setLevelInfo(String levelInfo) {
-        lblLevelInfo.setText("<html><div style='width: 1200px; text-align: center;'>" + levelInfo + "</div></html>");
-    }
-
-    public void setStatistics(String stats) {
-        lblStatistics.setText("<html><div style='width: 1200px; text-align: center;'>" + stats + "</div></html>");
-    }
-
-    // Methods to set data for tables
+    // Métodos para configurar datos en las tablas
     public void setDataTableData(Object[][] data) {
-        if (data.length > 10000) {
-            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                @Override
-                protected Void doInBackground() throws Exception {
-                    SwingUtilities.invokeLater(() -> {
-                        dataTableModel.setRowCount(0);
-                        for (Object[] row : data) {
-                            dataTableModel.addRow(row);
-                        }
-                    });
-                    return null;
-                }
-            };
-            worker.execute();
-        } else {
-            dataTableModel.setRowCount(0);
+        dataTableModel.setRowCount(0);
+        for (Object[] row : data) {
+            dataTableModel.addRow(row);
+        }
+    }
+
+    public void setIndexTableData(int level, Object[][] data) {
+        if (level < indexTableModels.size()) {
+            DefaultTableModel model = indexTableModels.get(level);
+            model.setRowCount(0);
             for (Object[] row : data) {
-                dataTableModel.addRow(row);
+                model.addRow(row);
             }
         }
     }
 
-    public void setPrimaryIndexTableData(Object[][] data) {
-        primaryIndexTableModel.setRowCount(0);
-        for (Object[] row : data) {
-            primaryIndexTableModel.addRow(row);
-        }
-    }
-
-    public void setSecondaryIndexTableData(Object[][] data) {
-        secondaryIndexTableModel.setRowCount(0);
-        for (Object[] row : data) {
-            secondaryIndexTableModel.addRow(row);
-        }
-    }
-
-    // Methods to highlight records in tables
+    // Métodos para highlighting durante búsqueda
     public void highlightDataRecord(int rowIndex) {
         this.highlightedDataRecord = rowIndex;
         this.foundRecordIndex = -1;
@@ -611,33 +591,31 @@ public class ImprovedMultilevelIndexView extends JFrame {
         }
     }
 
-    public void highlightPrimaryIndex(int rowIndex) {
-        this.highlightedPrimaryIndex = rowIndex;
-        primaryIndexTable.repaint();
+    public void highlightIndexRecord(int level, int rowIndex) {
+        if (level < highlightedIndexRecords.size()) {
+            highlightedIndexRecords.set(level, rowIndex);
+            if (level < indexTables.size()) {
+                indexTables.get(level).repaint();
 
-        if (rowIndex >= 0 && rowIndex < primaryIndexTable.getRowCount()) {
-            primaryIndexTable.scrollRectToVisible(primaryIndexTable.getCellRect(rowIndex, 0, true));
-        }
-    }
-
-    public void highlightSecondaryIndex(int rowIndex) {
-        this.highlightedSecondaryIndex = rowIndex;
-        secondaryIndexTable.repaint();
-
-        if (rowIndex >= 0 && rowIndex < secondaryIndexTable.getRowCount()) {
-            secondaryIndexTable.scrollRectToVisible(secondaryIndexTable.getCellRect(rowIndex, 0, true));
+                if (rowIndex >= 0 && rowIndex < indexTables.get(level).getRowCount()) {
+                    indexTables.get(level).scrollRectToVisible(
+                            indexTables.get(level).getCellRect(rowIndex, 0, true));
+                }
+            }
         }
     }
 
     public void highlightFoundRecord(int rowIndex) {
         this.highlightedDataRecord = -1;
-        this.highlightedPrimaryIndex = -1;
-        this.highlightedSecondaryIndex = -1;
+        for (int i = 0; i < highlightedIndexRecords.size(); i++) {
+            highlightedIndexRecords.set(i, -1);
+        }
         this.foundRecordIndex = rowIndex;
 
         dataTable.repaint();
-        primaryIndexTable.repaint();
-        secondaryIndexTable.repaint();
+        for (JTable table : indexTables) {
+            table.repaint();
+        }
 
         if (rowIndex >= 0 && rowIndex < dataTable.getRowCount()) {
             dataTable.scrollRectToVisible(dataTable.getCellRect(rowIndex, 0, true));
@@ -646,54 +624,28 @@ public class ImprovedMultilevelIndexView extends JFrame {
 
     public void clearHighlights() {
         this.highlightedDataRecord = -1;
-        this.highlightedPrimaryIndex = -1;
-        this.highlightedSecondaryIndex = -1;
+        for (int i = 0; i < highlightedIndexRecords.size(); i++) {
+            highlightedIndexRecords.set(i, -1);
+        }
         this.foundRecordIndex = -1;
 
         dataTable.repaint();
-        primaryIndexTable.repaint();
-        secondaryIndexTable.repaint();
+        for (JTable table : indexTables) {
+            table.repaint();
+        }
     }
 
-    public boolean isVisualizationEnabled() {
-        return chkVisualizeProcess.isSelected();
+    // Métodos para mostrar mensajes
+    public void setResultMessage(String message, boolean isSuccess) {
+        lblResult.setText("<html><div style='width: 250px;'>" + message + "</div></html>");
+        lblResult.setForeground(isSuccess ? new Color(46, 125, 50) : new Color(198, 40, 40));
     }
 
-    public void setInputValues(String recordCount, String blockSize, String dataRecordSize, String indexRecordSize) {
-        txtRecordCount.setText(recordCount);
-        txtBlockSizeBytes.setText(blockSize);
-        txtDataRecordSizeBytes.setText(dataRecordSize);
-        txtIndexRecordSizeBytes.setText(indexRecordSize);
+    public void setSearchProgress(String message) {
+        lblSearchProgress.setText("<html><div style='width: 250px;'>" + message + "</div></html>");
     }
 
     public void showWindow() {
         setVisible(true);
-    }
-
-    /**
-     * Method to show a dialog with the details of the multilevel structure.
-     */
-    public void showLevelDetailsDialog(String levelDetails) {
-        JDialog dialog = new JDialog(this, "Detalles de Estructura Multinivel", true);
-        dialog.setSize(600, 400);
-        dialog.setLocationRelativeTo(this);
-
-        JTextArea textArea = new JTextArea(levelDetails);
-        textArea.setFont(new Font("Courier New", Font.PLAIN, 12));
-        textArea.setEditable(false);
-        textArea.setBackground(new Color(248, 248, 248));
-
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        dialog.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton closeButton = createStyledButton("Cerrar", new Color(70, 130, 180));
-        closeButton.addActionListener(e -> dialog.dispose());
-        buttonPanel.add(closeButton);
-
-        dialog.add(buttonPanel, BorderLayout.SOUTH);
-        dialog.setVisible(true);
     }
 }
