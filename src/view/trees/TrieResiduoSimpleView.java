@@ -8,161 +8,296 @@ import java.util.Map;
 
 public class TrieResiduoSimpleView extends JFrame {
 
-    // Interfaz para que el controlador pinte el árbol
     public interface TreeVisualizer {
         void paintTreeVisualization(Graphics2D g2d, int width, int height);
     }
-
-    private TreeVisualizer treeVisualizer;
 
     private final JButton btnInsert;
     private final JButton btnSearch;
     private final JButton btnDelete;
     private final JButton btnClear;
     private final JButton btnBack;
-
     private final JTextField txtInsert;
     private final JTextField txtSearch;
     private final JTextField txtDelete;
-
     private final JLabel lblResult;
     private final JTextArea txtLog;
+    private final TreeVisualizationPanel treeVisualizationPanel;
 
-    private final TreePanel treePanel;
+    private TreeVisualizer treeVisualizer;
+    private Map<String, Object> trieData;
+
+    // Paleta de colores personalizada (misma que DigitalTreeView)
+    private static final Color DARK_NAVY = new Color(0, 1, 13);      // #0001DD
+    private static final Color WARM_BROWN = new Color(115, 73, 22);   // #734916
+    private static final Color LIGHT_BROWN = new Color(166, 133, 93); // #A6855D
+    private static final Color CREAM = new Color(242, 202, 153);      // #F2CA99
+    private static final Color VERY_DARK = new Color(13, 13, 13);     // #0D0D0D
+    private static final Color SOFT_WHITE = new Color(248, 248, 248); // Blanco suave para contraste
 
     public TrieResiduoSimpleView() {
-        setTitle("Visualizador de Árboles");
+        setTitle("Residuo Simple");
         setSize(1000, 800);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(10, 10));
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Panel superior con título
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(70, 130, 180));
-        header.setBorder(new EmptyBorder(20, 20, 20, 20));
-        JLabel lblTitle = new JLabel("Árbol de Búsqueda");
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBackground(CREAM);
+        mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        setContentPane(mainPanel);
+
+        // Title panel con paleta de colores
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(DARK_NAVY);
+        titlePanel.setLayout(new BorderLayout());
+        titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel lblTitle = new JLabel("Algoritmo de Residuo Simple");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setForeground(SOFT_WHITE);
         lblTitle.setHorizontalAlignment(SwingConstants.CENTER);
-        header.add(lblTitle, BorderLayout.CENTER);
-        add(header, BorderLayout.NORTH);
 
-        // Panel central dividido: dibujo y log
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        split.setResizeWeight(0.7);
+        JLabel lblSubtitle = new JLabel("Visualización y operaciones del árbol de búsqueda");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        lblSubtitle.setForeground(CREAM);
+        lblSubtitle.setHorizontalAlignment(SwingConstants.CENTER);
 
-        treePanel = new TreePanel();
-        JScrollPane treeScroll = new JScrollPane(treePanel);
-        treeScroll.setBorder(BorderFactory.createTitledBorder("Visualización"));
-        split.setLeftComponent(treeScroll);
+        titlePanel.add(lblTitle, BorderLayout.CENTER);
+        titlePanel.add(lblSubtitle, BorderLayout.SOUTH);
 
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+
+        // Split pane central
+        JSplitPane centerSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        centerSplitPane.setResizeWeight(0.7);
+        centerSplitPane.setBackground(CREAM);
+
+        // Panel de visualización del árbol
+        treeVisualizationPanel = new TreeVisualizationPanel();
+        JScrollPane treeScrollPane = new JScrollPane(treeVisualizationPanel);
+        treeScrollPane.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Visualización del Arbol"));
+        treeScrollPane.getViewport().setBackground(SOFT_WHITE);
+
+        // Panel de log de operaciones
         txtLog = new JTextArea();
+        txtLog.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtLog.setEditable(false);
-        txtLog.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        JScrollPane logScroll = new JScrollPane(txtLog);
-        logScroll.setBorder(BorderFactory.createTitledBorder("Log de Operaciones"));
-        split.setRightComponent(logScroll);
+        txtLog.setBackground(SOFT_WHITE);
+        txtLog.setForeground(VERY_DARK);
+        txtLog.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(LIGHT_BROWN, 1),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
 
-        add(split, BorderLayout.CENTER);
+        JScrollPane logScrollPane = new JScrollPane(txtLog);
+        logScrollPane.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Log de Operaciones"));
+        logScrollPane.getViewport().setBackground(SOFT_WHITE);
 
-        // Panel inferior con controles
-        JPanel controls = new JPanel(new GridLayout(4, 3, 10, 10));
-        controls.setBorder(new EmptyBorder(10, 10, 10, 10));
+        centerSplitPane.setLeftComponent(treeScrollPane);
+        centerSplitPane.setRightComponent(logScrollPane);
+        centerSplitPane.setDividerLocation(700);
 
-        // Insertar
-        controls.add(new JLabel("Clave a insertar:"));
-        txtInsert = new JTextField();
-        controls.add(txtInsert);
-        btnInsert = createButton("Insertar", new Color(46, 204, 113));
-        controls.add(btnInsert);
+        mainPanel.add(centerSplitPane, BorderLayout.CENTER);
 
-        // Buscar
-        controls.add(new JLabel("Clave a buscar:"));
-        txtSearch = new JTextField();
-        controls.add(txtSearch);
-        btnSearch = createButton("Buscar", new Color(52, 152, 219));
-        controls.add(btnSearch);
+        // Panel de controles
+        JPanel controlPanel = new JPanel(new GridLayout(4, 3, 10, 10));
+        controlPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        controlPanel.setBackground(CREAM);
 
-        // Eliminar
-        controls.add(new JLabel("Clave a eliminar:"));
-        txtDelete = new JTextField();
-        controls.add(txtDelete);
-        btnDelete = createButton("Eliminar", new Color(231, 76, 60));
-        controls.add(btnDelete);
+        // Crear labels con estilo
+        JLabel lblInsertLabel = createStyledLabel("Clave a insertar:");
+        txtInsert = createStyledTextField();
+        btnInsert = createStyledButton("Insertar", LIGHT_BROWN);
 
-        // Botones extra
-        btnClear = createButton("Limpiar Árbol", new Color(155, 89, 182));
-        controls.add(btnClear);
-        lblResult = new JLabel(" ");
+        controlPanel.add(lblInsertLabel);
+        controlPanel.add(txtInsert);
+        controlPanel.add(btnInsert);
+
+        JLabel lblSearchLabel = createStyledLabel("Clave a buscar:");
+        txtSearch = createStyledTextField();
+        btnSearch = createStyledButton("Buscar", DARK_NAVY);
+
+        controlPanel.add(lblSearchLabel);
+        controlPanel.add(txtSearch);
+        controlPanel.add(btnSearch);
+
+        JLabel lblDeleteLabel = createStyledLabel("Clave a eliminar:");
+        txtDelete = createStyledTextField();
+        btnDelete = createStyledButton("Eliminar", new Color(180, 67, 67)); // Rojo más suave
+
+        controlPanel.add(lblDeleteLabel);
+        controlPanel.add(txtDelete);
+        controlPanel.add(btnDelete);
+
+        btnClear = createStyledButton("Limpiar Árbol", WARM_BROWN);
+        lblResult = new JLabel("");
         lblResult.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        controls.add(lblResult);
-        btnBack = createButton("Volver", new Color(241, 196, 15));
-        controls.add(btnBack);
+        lblResult.setForeground(VERY_DARK);
+        btnBack = createStyledButton("Volver", VERY_DARK);
 
-        add(controls, BorderLayout.SOUTH);
+        controlPanel.add(btnClear);
+        controlPanel.add(lblResult);
+        controlPanel.add(btnBack);
+
+        mainPanel.add(controlPanel, BorderLayout.SOUTH);
+
+        this.trieData = null;
     }
 
-    private JButton createButton(String text, Color bg) {
-        JButton b = new JButton(text);
-        b.setBackground(bg);
-        b.setForeground(Color.WHITE);
-        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        b.setFocusPainted(false);
-        return b;
-    }
+    private class TreeVisualizationPanel extends JPanel {
+        public TreeVisualizationPanel() {
+            setPreferredSize(new Dimension(800, 500));
+            setBackground(SOFT_WHITE);
+        }
 
-    // Listeners
-    public void addInsertWordListener(ActionListener l) { btnInsert.addActionListener(l); }
-    public void addSearchWordListener(ActionListener l) { btnSearch.addActionListener(l); }
-    public void addDeleteWordListener(ActionListener l) { btnDelete.addActionListener(l); }
-    public void addClearTrieListener(ActionListener l) { btnClear.addActionListener(l); }
-    public void addBackListener(ActionListener l) { btnBack.addActionListener(l); }
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
 
-    // Obtener texto
-    public String getWordToInsert() { return txtInsert.getText().trim(); }
-    public String getWordToSearch() { return txtSearch.getText().trim(); }
-    public String getWordToDelete() { return txtDelete.getText().trim(); }
-
-    // Mensajes
-    public void setResultMessage(String msg, boolean success) {
-        lblResult.setText(msg);
-        lblResult.setForeground(success ? new Color(46, 125, 50) : new Color(198, 40, 40));
-    }
-
-    // Actualizar log
-    public void updateWordList(String[] lines) {
-        txtLog.setText("");
-        for (String l : lines) {
-            txtLog.append(l + "\n");
+            if (treeVisualizer != null) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                treeVisualizer.paintTreeVisualization(g2d, getWidth(), getHeight());
+            } else {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setColor(LIGHT_BROWN);
+                g2d.setFont(new Font("Segoe UI", Font.ITALIC, 16));
+                String message = "No hay árbol para visualizar";
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(message)) / 2;
+                int y = getHeight() / 2;
+                g2d.drawString(message, x, y);
+            }
         }
     }
 
-    // Limpiar campos de entrada
+    // Método para crear labels estilizados
+    private JLabel createStyledLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(VERY_DARK);
+        return label;
+    }
+
+    // Método para crear campos de texto estilizados
+    private JTextField createStyledTextField() {
+        JTextField textField = new JTextField(15);
+        textField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        textField.setBackground(SOFT_WHITE);
+        textField.setForeground(VERY_DARK);
+        textField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(LIGHT_BROWN, 1),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
+        return textField;
+    }
+
+    // Método para crear botones estilizados
+    private JButton createStyledButton(String text, Color backgroundColor) {
+        JButton button = new JButton(text);
+        button.setBackground(backgroundColor);
+        button.setForeground(SOFT_WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Efecto hover
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            Color originalColor = backgroundColor;
+
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(originalColor.brighter());
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(originalColor);
+            }
+        });
+
+        return button;
+    }
+
+    // Métodos para añadir listeners
+    public void addInsertWordListener(ActionListener listener) {
+        btnInsert.addActionListener(listener);
+    }
+
+    public void addSearchWordListener(ActionListener listener) {
+        btnSearch.addActionListener(listener);
+    }
+
+    public void addDeleteWordListener(ActionListener listener) {
+        btnDelete.addActionListener(listener);
+    }
+
+    public void addClearTrieListener(ActionListener listener) {
+        btnClear.addActionListener(listener);
+    }
+
+    public void addBackListener(ActionListener listener) {
+        btnBack.addActionListener(listener);
+    }
+
+    // Métodos para obtener datos de los campos
+    public String getWordToInsert() {
+        return txtInsert.getText().trim();
+    }
+
+    public String getWordToSearch() {
+        return txtSearch.getText().trim();
+    }
+
+    public String getWordToDelete() {
+        return txtDelete.getText().trim();
+    }
+
+    // Método para establecer mensaje de resultado
+    public void setResultMessage(String message, boolean isSuccess) {
+        lblResult.setText(message);
+        lblResult.setForeground(isSuccess ? new Color(76, 175, 80) : new Color(183, 28, 28));
+    }
+
+    // Método para actualizar el log de palabras
+    public void updateWordList(String[] lines) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Historial de Operaciones:\n\n");
+        for (String line : lines) {
+            sb.append(line).append("\n");
+        }
+        txtLog.setText(sb.toString());
+    }
+
+    // Método para limpiar campos de entrada
     public void clearInputFields() {
         txtInsert.setText("");
         txtSearch.setText("");
         txtDelete.setText("");
+        lblResult.setText("");
     }
 
-    // Para la visualización gráfica
-    public void setTreeVisualizer(TreeVisualizer tv) {
-        this.treeVisualizer = tv;
-    }
-    public void updateTrieVisualization(Map<String,Object> data) {
-        treePanel.repaint();
+    // Método para establecer el visualizador del árbol
+    public void setTreeVisualizer(TreeVisualizer visualizer) {
+        this.treeVisualizer = visualizer;
     }
 
-    public void showWindow() { setVisible(true); }
+    // Método para actualizar la visualización del Trie
+    public void updateTrieVisualization(Map<String, Object> trieData) {
+        this.trieData = trieData;
+        treeVisualizationPanel.repaint();
+    }
 
-    private class TreePanel extends JPanel {
-        TreePanel() { setPreferredSize(new Dimension(800, 500)); setBackground(Color.WHITE); }
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (treeVisualizer != null) {
-                treeVisualizer.paintTreeVisualization((Graphics2D)g, getWidth(), getHeight());
-            }
-        }
+    // Método para obtener los datos del Trie
+    public Map<String, Object> getTrieData() {
+        return this.trieData;
+    }
+
+    // Método para mostrar la ventana
+    public void showWindow() {
+        setVisible(true);
     }
 }

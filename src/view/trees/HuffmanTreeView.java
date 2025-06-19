@@ -10,118 +10,143 @@ import java.util.Map;
 
 public class HuffmanTreeView extends JFrame {
 
-    // Interfaz para comunicar con el controlador para dibujar el árbol
     public interface TreeVisualizer {
         void paintTreeVisualization(Graphics2D g2d, int width, int height);
     }
 
-    // Componentes de la UI
-    private JTextArea inputTextArea;
-    private JTextArea compressedTextArea;
-    private JTextArea decompressedTextArea;
-    private JButton buildTreeButton;
-    private JButton compressButton;
-    private JButton decompressButton;
-    private JButton clearButton;
-    private JButton backButton;
-    private JButton saveImageButton; // Nuevo: botón para guardar imagen
-    private JLabel resultMessageLabel;
-    private JTable codesTable;
+    private final JButton btnBuildTree;
+    private final JButton btnCompress;
+    private final JButton btnDecompress;
+    private final JButton btnClear;
+    private final JButton btnBack;
+    private final JButton btnSaveImage;
+    private JTextArea txtInputText;
+    private JTextArea txtCompressedText;
+    private JTextArea txtDecompressedText;
+    private final JLabel lblResult;
+    private JLabel lblStatistics;
+    private JTable tblCodes;
     private DefaultTableModel tableModel;
-    private TreeVisualizationPanel treeVisualizationPanel;
-    private JLabel statisticsLabel;
+    private final TreeVisualizationPanel treeVisualizationPanel;
 
-    // Visualizador del árbol (será el controlador)
     private TreeVisualizer treeVisualizer;
 
-    public HuffmanTreeView() {
-        initializeUI();
-    }
+    // Paleta de colores personalizada (misma que DigitalTreeView)
+    private static final Color DARK_NAVY = new Color(0, 1, 13);      // #0001DD
+    private static final Color WARM_BROWN = new Color(115, 73, 22);   // #734916
+    private static final Color LIGHT_BROWN = new Color(166, 133, 93); // #A6855D
+    private static final Color CREAM = new Color(242, 202, 153);      // #F2CA99
+    private static final Color VERY_DARK = new Color(13, 13, 13);     // #0D0D0D
+    private static final Color SOFT_WHITE = new Color(248, 248, 248); // Blanco suave para contraste
 
-    private void initializeUI() {
-        setTitle("Árbol de Huffman - Visualizador");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    public HuffmanTreeView() {
+        setTitle("Árbol de Huffman");
         setSize(1200, 800);
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Panel principal con BorderLayout
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBackground(CREAM);
         mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         setContentPane(mainPanel);
 
-        // Panel superior para controles
-        JPanel controlPanel = createControlPanel();
-        mainPanel.add(controlPanel, BorderLayout.NORTH);
+        // Title panel con paleta de colores
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(DARK_NAVY);
+        titlePanel.setLayout(new BorderLayout());
+        titlePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Panel central para visualización del árbol y códigos
-        JSplitPane centerSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        centerSplitPane.setResizeWeight(0.7);
+        JLabel lblTitle = new JLabel("Algoritmo de Árbol de Huffman");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblTitle.setForeground(SOFT_WHITE);
+        lblTitle.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel lblSubtitle = new JLabel("Compresión y visualización del árbol");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        lblSubtitle.setForeground(CREAM);
+        lblSubtitle.setHorizontalAlignment(SwingConstants.CENTER);
+
+        titlePanel.add(lblTitle, BorderLayout.CENTER);
+        titlePanel.add(lblSubtitle, BorderLayout.SOUTH);
+
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+
+        // Split pane central principal
+        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        mainSplitPane.setResizeWeight(0.6);
+        mainSplitPane.setBackground(CREAM);
+
+        // Panel superior con visualización y códigos
+        JSplitPane topSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        topSplitPane.setResizeWeight(0.6);
+        topSplitPane.setBackground(CREAM);
 
         // Panel de visualización del árbol
         treeVisualizationPanel = new TreeVisualizationPanel();
-        centerSplitPane.setLeftComponent(new JScrollPane(treeVisualizationPanel));
+        JScrollPane treeScrollPane = new JScrollPane(treeVisualizationPanel);
+        treeScrollPane.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Visualización del Árbol de Huffman"));
+        treeScrollPane.getViewport().setBackground(SOFT_WHITE);
 
-        // Panel para los códigos de Huffman
+        // Panel para códigos y estadísticas
+        JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
+        rightPanel.setBackground(CREAM);
+
+        // Panel de códigos
         JPanel codesPanel = createCodesPanel();
-        centerSplitPane.setRightComponent(codesPanel);
+        rightPanel.add(codesPanel, BorderLayout.CENTER);
 
-        mainPanel.add(centerSplitPane, BorderLayout.CENTER);
-
-        // Panel inferior para visualización de texto comprimido/descomprimido
-        JPanel textPanel = createTextPanel();
-        mainPanel.add(textPanel, BorderLayout.SOUTH);
-
-        // Panel para estadísticas
+        // Panel de estadísticas
         JPanel statsPanel = createStatsPanel();
-        mainPanel.add(statsPanel, BorderLayout.EAST);
-    }
+        rightPanel.add(statsPanel, BorderLayout.SOUTH);
 
-    private JPanel createControlPanel() {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        topSplitPane.setLeftComponent(treeScrollPane);
+        topSplitPane.setRightComponent(rightPanel);
 
-        // Panel para botones
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        // Panel inferior para textos
+        JPanel textPanel = createTextPanel();
 
-        buildTreeButton = new JButton("Construir Árbol");
-        buildTreeButton.setToolTipText("Construir el árbol de Huffman a partir del texto de entrada");
-        buttonPanel.add(buildTreeButton);
+        mainSplitPane.setTopComponent(topSplitPane);
+        mainSplitPane.setBottomComponent(textPanel);
 
-        compressButton = new JButton("Comprimir");
-        compressButton.setToolTipText("Comprimir el texto usando el árbol de Huffman");
-        buttonPanel.add(compressButton);
+        mainPanel.add(mainSplitPane, BorderLayout.CENTER);
 
-        decompressButton = new JButton("Descomprimir");
-        decompressButton.setToolTipText("Descomprimir el texto usando el árbol de Huffman");
-        buttonPanel.add(decompressButton);
+        // Panel de controles
+        JPanel controlPanel = new JPanel(new GridLayout(2, 4, 10, 10));
+        controlPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        controlPanel.setBackground(CREAM);
 
-        clearButton = new JButton("Limpiar");
-        clearButton.setToolTipText("Limpiar todo");
-        buttonPanel.add(clearButton);
+        // Primera fila de botones
+        btnBuildTree = createStyledButton("Construir Árbol", LIGHT_BROWN);
+        btnCompress = createStyledButton("Comprimir", DARK_NAVY);
+        btnDecompress = createStyledButton("Descomprimir", WARM_BROWN);
+        btnSaveImage = createStyledButton("Guardar Árbol", new Color(76, 175, 80));
 
-        backButton = new JButton("Atrás");
-        backButton.setToolTipText("Volver a la pantalla anterior");
-        buttonPanel.add(backButton);
+        controlPanel.add(btnBuildTree);
+        controlPanel.add(btnCompress);
+        controlPanel.add(btnDecompress);
+        controlPanel.add(btnSaveImage);
 
-        // Nuevo: Botón para guardar árbol como imagen
-        saveImageButton = new JButton("Guardar Árbol");
-        saveImageButton.setToolTipText("Guardar el árbol como imagen PNG");
-        buttonPanel.add(saveImageButton);
+        // Segunda fila
+        btnClear = createStyledButton("Limpiar", new Color(180, 67, 67));
+        lblResult = new JLabel("");
+        lblResult.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblResult.setForeground(VERY_DARK);
+        lblResult.setHorizontalAlignment(SwingConstants.CENTER);
+        btnBack = createStyledButton("Volver", VERY_DARK);
 
-        panel.add(buttonPanel, BorderLayout.WEST);
+        // Espacio vacío para balance
+        JLabel emptyLabel = new JLabel("");
 
-        // Panel para mensajes de resultado
-        resultMessageLabel = new JLabel(" ");
-        resultMessageLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        panel.add(resultMessageLabel, BorderLayout.EAST);
+        controlPanel.add(btnClear);
+        controlPanel.add(lblResult);
+        controlPanel.add(emptyLabel);
+        controlPanel.add(btnBack);
 
-        return panel;
-    }
+        mainPanel.add(controlPanel, BorderLayout.SOUTH);
 
-    private JPanel createCodesPanel() {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBorder(BorderFactory.createTitledBorder("Códigos de Huffman"));
-
-        // Crear tabla para mostrar los códigos
+        // Inicializar tabla
         String[] columnNames = {"Carácter", "Frecuencia", "Código"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
@@ -129,85 +154,14 @@ public class HuffmanTreeView extends JFrame {
                 return false;
             }
         };
-
-        codesTable = new JTable(tableModel);
-        codesTable.getColumnModel().getColumn(0).setPreferredWidth(100);
-        codesTable.getColumnModel().getColumn(1).setPreferredWidth(100);
-        codesTable.getColumnModel().getColumn(2).setPreferredWidth(300);
-
-        // Centrar contenido de las celdas
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        codesTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
-        codesTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
-
-        JScrollPane scrollPane = new JScrollPane(codesTable);
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
+        tblCodes = new JTable(tableModel);
+        setupTable();
     }
 
-    private JPanel createTextPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 3, 10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-        // Panel para texto de entrada
-        JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
-        inputPanel.setBorder(BorderFactory.createTitledBorder("Texto Original"));
-
-        inputTextArea = new JTextArea(5, 20);
-        inputTextArea.setLineWrap(true);
-        inputTextArea.setWrapStyleWord(true);
-        JScrollPane inputScrollPane = new JScrollPane(inputTextArea);
-        inputPanel.add(inputScrollPane, BorderLayout.CENTER);
-
-        // Panel para texto comprimido
-        JPanel compressedPanel = new JPanel(new BorderLayout(5, 5));
-        compressedPanel.setBorder(BorderFactory.createTitledBorder("Texto Comprimido"));
-
-        compressedTextArea = new JTextArea(5, 20);
-        compressedTextArea.setLineWrap(true);
-        compressedTextArea.setWrapStyleWord(true);
-        compressedTextArea.setEditable(false);
-        JScrollPane compressedScrollPane = new JScrollPane(compressedTextArea);
-        compressedPanel.add(compressedScrollPane, BorderLayout.CENTER);
-
-        // Panel para texto descomprimido
-        JPanel decompressedPanel = new JPanel(new BorderLayout(5, 5));
-        decompressedPanel.setBorder(BorderFactory.createTitledBorder("Texto Descomprimido"));
-
-        decompressedTextArea = new JTextArea(5, 20);
-        decompressedTextArea.setLineWrap(true);
-        decompressedTextArea.setWrapStyleWord(true);
-        decompressedTextArea.setEditable(false);
-        JScrollPane decompressedScrollPane = new JScrollPane(decompressedTextArea);
-        decompressedPanel.add(decompressedScrollPane, BorderLayout.CENTER);
-
-        // Añadir los tres paneles
-        panel.add(inputPanel);
-        panel.add(compressedPanel);
-        panel.add(decompressedPanel);
-
-        return panel;
-    }
-
-    private JPanel createStatsPanel() {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBorder(BorderFactory.createTitledBorder("Estadísticas"));
-
-        statisticsLabel = new JLabel("<html><b>Nodos:</b> 0<br><b>Altura:</b> 0<br><b>Tasa de compresión:</b> 0%</html>");
-        statisticsLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        panel.add(statisticsLabel, BorderLayout.NORTH);
-
-        return panel;
-    }
-
-    // Clase para el panel de visualización del árbol
     private class TreeVisualizationPanel extends JPanel {
         public TreeVisualizationPanel() {
             setPreferredSize(new Dimension(600, 400));
-            setBackground(Color.WHITE);
-            setBorder(BorderFactory.createTitledBorder("Visualización del Árbol"));
+            setBackground(SOFT_WHITE);
         }
 
         @Override
@@ -218,78 +172,225 @@ public class HuffmanTreeView extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 treeVisualizer.paintTreeVisualization(g2d, getWidth(), getHeight());
+            } else {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setColor(LIGHT_BROWN);
+                g2d.setFont(new Font("Segoe UI", Font.ITALIC, 16));
+                String message = "No hay árbol para visualizar";
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(message)) / 2;
+                int y = getHeight() / 2;
+                g2d.drawString(message, x, y);
             }
         }
     }
 
-    // Métodos para añadir listeners a los botones
+    private JPanel createCodesPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Códigos de Huffman"));
+        panel.setBackground(CREAM);
+
+        JScrollPane scrollPane = new JScrollPane(tblCodes);
+        scrollPane.getViewport().setBackground(SOFT_WHITE);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private void setupTable() {
+        tblCodes.setBackground(SOFT_WHITE);
+        tblCodes.setForeground(VERY_DARK);
+        tblCodes.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tblCodes.getTableHeader().setBackground(LIGHT_BROWN);
+        tblCodes.getTableHeader().setForeground(SOFT_WHITE);
+        tblCodes.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        tblCodes.getColumnModel().getColumn(0).setPreferredWidth(100);
+        tblCodes.getColumnModel().getColumn(1).setPreferredWidth(100);
+        tblCodes.getColumnModel().getColumn(2).setPreferredWidth(300);
+
+        // Centrar contenido de las celdas
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        tblCodes.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        tblCodes.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+    }
+
+    private JPanel createStatsPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Estadísticas"));
+        panel.setBackground(CREAM);
+
+        lblStatistics = new JLabel("<html><b>Nodos:</b> 0<br><b>Altura:</b> 0<br><b>Tasa de compresión:</b> 0%</html>");
+        lblStatistics.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblStatistics.setForeground(VERY_DARK);
+        lblStatistics.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.add(lblStatistics, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createTextPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, 3, 10, 10));
+        panel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        panel.setBackground(CREAM);
+
+        // Panel para texto de entrada
+        JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
+        inputPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Texto Original"));
+        inputPanel.setBackground(CREAM);
+
+        txtInputText = createStyledTextArea(5, 20);
+        txtInputText.setEditable(true);
+        JScrollPane inputScrollPane = new JScrollPane(txtInputText);
+        inputScrollPane.getViewport().setBackground(SOFT_WHITE);
+        inputPanel.add(inputScrollPane, BorderLayout.CENTER);
+
+        // Panel para texto comprimido
+        JPanel compressedPanel = new JPanel(new BorderLayout(5, 5));
+        compressedPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Texto Comprimido"));
+        compressedPanel.setBackground(CREAM);
+
+        txtCompressedText = createStyledTextArea(5, 20);
+        JScrollPane compressedScrollPane = new JScrollPane(txtCompressedText);
+        compressedScrollPane.getViewport().setBackground(SOFT_WHITE);
+        compressedPanel.add(compressedScrollPane, BorderLayout.CENTER);
+
+        // Panel para texto descomprimido
+        JPanel decompressedPanel = new JPanel(new BorderLayout(5, 5));
+        decompressedPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(WARM_BROWN, 2),
+                "Texto Descomprimido"));
+        decompressedPanel.setBackground(CREAM);
+
+        txtDecompressedText = createStyledTextArea(5, 20);
+        JScrollPane decompressedScrollPane = new JScrollPane(txtDecompressedText);
+        decompressedScrollPane.getViewport().setBackground(SOFT_WHITE);
+        decompressedPanel.add(decompressedScrollPane, BorderLayout.CENTER);
+
+        panel.add(inputPanel);
+        panel.add(compressedPanel);
+        panel.add(decompressedPanel);
+
+        return panel;
+    }
+
+    // Método para crear áreas de texto estilizadas
+    private JTextArea createStyledTextArea(int rows, int cols) {
+        JTextArea textArea = new JTextArea(rows, cols);
+        textArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        textArea.setBackground(SOFT_WHITE);
+        textArea.setForeground(VERY_DARK);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(false);
+        textArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(LIGHT_BROWN, 1),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
+        return textArea;
+    }
+
+    // Método para crear botones estilizados (mismo patrón que DigitalTreeView)
+    private JButton createStyledButton(String text, Color backgroundColor) {
+        JButton button = new JButton(text);
+        button.setBackground(backgroundColor);
+        button.setForeground(SOFT_WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Efecto hover
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            Color originalColor = backgroundColor;
+
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(originalColor.brighter());
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(originalColor);
+            }
+        });
+
+        return button;
+    }
+
+    // Métodos para añadir listeners
     public void addBuildTreeListener(ActionListener listener) {
-        buildTreeButton.addActionListener(listener);
+        btnBuildTree.addActionListener(listener);
     }
 
     public void addCompressListener(ActionListener listener) {
-        compressButton.addActionListener(listener);
+        btnCompress.addActionListener(listener);
     }
 
     public void addDecompressListener(ActionListener listener) {
-        decompressButton.addActionListener(listener);
+        btnDecompress.addActionListener(listener);
     }
 
     public void addClearListener(ActionListener listener) {
-        clearButton.addActionListener(listener);
+        btnClear.addActionListener(listener);
     }
 
     public void addBackListener(ActionListener listener) {
-        backButton.addActionListener(listener);
+        btnBack.addActionListener(listener);
     }
 
-    // Nuevo: método para agregar listener al botón guardar
     public void addSaveImageListener(ActionListener listener) {
-        saveImageButton.addActionListener(listener);
+        btnSaveImage.addActionListener(listener);
     }
 
-    // Métodos para obtener datos de los campos
+    // Métodos para obtener datos
     public String getInputText() {
-        return inputTextArea.getText();
+        return txtInputText.getText();
     }
 
     public String getCompressedText() {
-        return compressedTextArea.getText();
+        return txtCompressedText.getText();
     }
 
-    // Métodos para establecer datos en los campos
+    // Métodos para establecer datos
+    public void setInputText(String text) {
+        txtInputText.setText(text);
+    }
+
     public void setCompressedText(String text) {
-        compressedTextArea.setText(text);
+        txtCompressedText.setText(text);
     }
 
     public void setDecompressedText(String text) {
-        decompressedTextArea.setText(text);
+        txtDecompressedText.setText(text);
     }
 
-    public void setResultMessage(String message, boolean success) {
-        resultMessageLabel.setText(message);
-        resultMessageLabel.setForeground(success ? new Color(0, 128, 0) : Color.RED);
+    public void setResultMessage(String message, boolean isSuccess) {
+        lblResult.setText(message);
+        lblResult.setForeground(isSuccess ? new Color(76, 175, 80) : new Color(183, 28, 28));
     }
 
     // Método para actualizar la tabla de códigos
     public void updateCodesTable(Map<Character, String> encodingMap, Map<Character, Integer> frequencyMap) {
-        // Limpiar la tabla
         tableModel.setRowCount(0);
 
-        // Añadir filas para cada caracter
         for (Map.Entry<Character, String> entry : encodingMap.entrySet()) {
             Character character = entry.getKey();
             String code = entry.getValue();
             Integer frequency = frequencyMap.get(character);
 
-            // Formatear el caracter para visualización (especialmente para espacios y caracteres invisibles)
             String displayChar = formatCharacter(character);
-
             tableModel.addRow(new Object[]{displayChar, frequency, code});
         }
     }
 
-    // Formatear caracteres especiales para mejor visualización
     private String formatCharacter(Character c) {
         if (c == ' ') {
             return "[espacio]";
@@ -304,55 +405,44 @@ public class HuffmanTreeView extends JFrame {
         }
     }
 
-    // Método para actualizar estadísticas
     public void updateStatistics(int nodes, int height, double compressionRate) {
-        statisticsLabel.setText(String.format(
+        lblStatistics.setText(String.format(
                 "<html><b>Nodos:</b> %d<br><b>Altura:</b> %d<br><b>Tasa de compresión:</b> %.2f%%</html>",
                 nodes, height, compressionRate));
     }
 
-    // Método para limpiar campos
     public void clearFields() {
-        inputTextArea.setText("");
-        compressedTextArea.setText("");
-        decompressedTextArea.setText("");
+        txtInputText.setText("");
+        txtCompressedText.setText("");
+        txtDecompressedText.setText("");
         tableModel.setRowCount(0);
-        resultMessageLabel.setText(" ");
+        lblResult.setText("");
         updateStatistics(0, 0, 0);
         treeVisualizationPanel.repaint();
     }
 
-    // Método para establecer el visualizador del árbol
     public void setTreeVisualizer(TreeVisualizer visualizer) {
         this.treeVisualizer = visualizer;
     }
 
-    // Método para obtener el panel de visualización
     public JPanel getTreeVisualizationPanel() {
         return treeVisualizationPanel;
     }
 
-    // Método para mostrar la ventana
-    public void showWindow() {
-        setVisible(true);
-    }
-
-    // Método para resaltar una fila en la tabla
     public void highlightRow(int row) {
-        codesTable.setRowSelectionInterval(row, row);
-        codesTable.scrollRectToVisible(codesTable.getCellRect(row, 0, true));
+        tblCodes.setRowSelectionInterval(row, row);
+        tblCodes.scrollRectToVisible(tblCodes.getCellRect(row, 0, true));
     }
 
-    // Métodos auxiliares para acceder a la tabla
     public int getTableRowCount() {
         return tableModel.getRowCount();
     }
 
-    public void setInputText(String text) {
-        inputTextArea.setText(text);
-    }
-
     public Object getTableValueAt(int row, int col) {
         return tableModel.getValueAt(row, col);
+    }
+
+    public void showWindow() {
+        setVisible(true);
     }
 }

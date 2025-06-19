@@ -1,14 +1,13 @@
 package controller.menu;
 
 import controller.external_search.ExternalBinarySearchController;
-import controller.external_search.ExternalHashAlgorithmController;
 import controller.external_search.ExternalSequentialSearchController;
 import view.menu.ExternalSearchMenuView;
 import view.menu.MainView;
 import view.menu.SearchMenuView;
 import view.external_search.ExternalSequentialSearchView;
 import view.external_search.ExternalBinarySearchView;
-import view.external_search.ExternalHashAlgorithmView;
+import view.menu.ExternalHashAlgorithmView;
 
 public class ExternalSearchMenuController {
     private ExternalSearchMenuView externalSearchMenuView;

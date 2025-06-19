@@ -1,6 +1,10 @@
-package controller.external_search;
+package controller.menu;
 
-import view.external_search.ExternalHashAlgorithmView;
+import controller.external_search.ExternalFoldingSearchController;
+import controller.external_search.ExternalModSearchController;
+import controller.external_search.ExternalSquaredSearchController;
+import controller.external_search.ExternalTruncSearchController;
+import view.menu.ExternalHashAlgorithmView;
 import view.menu.ExternalSearchMenuView;
 import view.external_search.ExternalModSearchView;
 import view.external_search.ExternalSquaredSearchView;

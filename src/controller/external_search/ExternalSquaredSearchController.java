@@ -1,7 +1,7 @@
 package controller.external_search;
 
 import view.external_search.ExternalSquaredSearchView;
-import view.external_search.ExternalHashAlgorithmView;
+import view.menu.ExternalHashAlgorithmView;
 import view.external_search.ExternalColisionView;
 
 import javax.swing.*;
