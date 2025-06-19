@@ -11,16 +11,28 @@ public class ResiduoMultipleController implements MultipleResiduoView.TreeVisual
     private final ResiduoMultipleModel model;
     private final MultipleResiduoView view;
     private String logText = "";
+    private final controller.menu.TreeController treeController;
+    private final view.menu.TreeView parentView;
 
+    // Constructor original para compatibilidad
     public ResiduoMultipleController(ResiduoMultipleModel model, MultipleResiduoView view) {
+        this(model, view, null, null);
+    }
+
+    // Constructor con navegación
+    public ResiduoMultipleController(ResiduoMultipleModel model, MultipleResiduoView view,
+                                     controller.menu.TreeController treeController, view.menu.TreeView parentView) {
         this.model = model;
         this.view = view;
+        this.treeController = treeController;
+        this.parentView = parentView;
+
         view.setVisualizer(this);
         view.addInsertListener(this::onInsert);
         view.addSearchListener(this::onSearch);
         view.addDeleteListener(this::onDelete);
         view.addClearListener(this::onClear);
-        view.addBackListener(e -> view.dispose());
+        view.addBackListener(this::goBack);
         updateView();
     }
 
@@ -66,13 +78,23 @@ public class ResiduoMultipleController implements MultipleResiduoView.TreeVisual
 
     private void onClear(ActionEvent e) {
         int r = JOptionPane.showConfirmDialog(view, "Limpiar todo el Trie?", "Confirmar",
-                                              JOptionPane.YES_NO_OPTION);
+                JOptionPane.YES_NO_OPTION);
         if (r == JOptionPane.YES_OPTION) {
             model.clear();
             logText = "";
             view.setResult("Trie limpio", true);
             view.setLogLines(new String[]{});
             view.refreshTree();
+        }
+    }
+
+    private void goBack(ActionEvent e) {
+        // Cerrar la vista actual
+        view.dispose();
+
+        // Si tenemos referencia al controlador padre, mostrar la vista del menú de árboles
+        if (treeController != null && parentView != null) {
+            parentView.setVisible(true);
         }
     }
 
@@ -90,9 +112,6 @@ public class ResiduoMultipleController implements MultipleResiduoView.TreeVisual
     public void init() {
         SwingUtilities.invokeLater(() -> view.setVisible(true));
     }
-
-
-    
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

@@ -59,22 +59,22 @@ public class TreeController {
         digitalTreeController.initView();
     }
 
+
     // Método para abrir la vista de residuo simple
     public void openResidueSimple() {
-        // Ocultar esta vista (no cerrarla completamente)
+
         view.setVisible(false);
 
-        // Crear modelo y vista para el residuo simple
         ResiduoSimpleModel residueSimpleModel = new ResiduoSimpleModel();
         TrieResiduoSimpleView residueSimpleView = new TrieResiduoSimpleView();
 
-        // Crear el controlador de residuo simple
+
         ResiduoSimpleController residueSimpleController = new ResiduoSimpleController(
                 residueSimpleModel,
-                residueSimpleView
+                residueSimpleView,
+                this,
+                view
         );
-
-        // Inicializar la vista
         residueSimpleController.init();
     }
 
@@ -88,10 +88,12 @@ public class TreeController {
         ResiduoMultipleModel multipleResidueModel = new ResiduoMultipleModel(tamGrupo);
         MultipleResiduoView multipleResidueView = new MultipleResiduoView(tamGrupo);
 
-        // Crear el controlador de tu amigo
+        // Crear el controlador de tu amigo pasando las referencias para navegación
         ResiduoMultipleController multipleResidueController = new ResiduoMultipleController(
                 multipleResidueModel,
-                multipleResidueView
+                multipleResidueView,
+                this,  // Pasar referencia a este controlador
+                view   // Pasar referencia a esta vista
         );
 
         // Inicializar la vista usando el método de tu amigo

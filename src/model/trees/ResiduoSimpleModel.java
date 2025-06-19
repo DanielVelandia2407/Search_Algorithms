@@ -13,7 +13,7 @@ public class ResiduoSimpleModel {
             arbol.insertar(key, area);
             return true;
         }
-        arbol.insertar(key, area); // para que imprima “ya existe”
+        arbol.insertar(key, area); // para que imprima "ya existe"
         return false;
     }
 
@@ -28,6 +28,13 @@ public class ResiduoSimpleModel {
 
     public boolean search(String key) {
         return arbol.existeClave(key);
+    }
+
+    /**
+     * Busca una clave y devuelve información detallada incluyendo el nivel
+     */
+    public ArbolResiduoSimple.ResultadoBusquedaDetallada buscarConDetalle(String key, JTextArea area) {
+        return arbol.buscarClaveConInfo(key, area);
     }
 
     public void clear() {
