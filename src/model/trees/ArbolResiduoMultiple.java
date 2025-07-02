@@ -3,6 +3,7 @@ package model.trees;
 import javax.swing.JTextArea;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -113,48 +114,63 @@ public class ArbolResiduoMultiple extends ArbolBase {
         dibujarNodo((Graphics2D) g, raiz, anchura / 2, 50, anchura / 4);
     }
 
-    private void dibujarNodo(Graphics2D g, NodoArbol nodo,
-                             int x, int y, int offset) {
+    private void dibujarNodo(Graphics2D g, NodoArbol nodo, int x, int y, int offset) {
         if (nodo == null) return;
         nodo.setPosicion(x, y);
-        g.setColor(Color.BLACK);
-        g.setStroke(new BasicStroke(3));
 
-        List<Map.Entry<String, NodoArbol>> hijos =
-            new ArrayList<>(nodo.getHijos().entrySet());
-        int n = hijos.size();
-        for (int i = 0; i < n; i++) {
-            String key = hijos.get(i).getKey();
-            NodoArbol child = hijos.get(i).getValue();
-            int childX = x - offset + (2 * offset * i) 
-                         / (Math.max(n - 1, 1));
+        g.setColor(Color.BLACK);
+        g.setStroke(new BasicStroke(1)); // Grosor uniforme
+
+        // Ordenar hijos por clave
+        List<Map.Entry<String, NodoArbol>> hijos = new ArrayList<>(nodo.getHijos().entrySet());
+        Collections.sort(hijos, (e1, e2) -> e1.getKey().compareTo(e2.getKey()));
+
+        for (Map.Entry<String, NodoArbol> entry : hijos) {
+            String key = entry.getKey();
+            NodoArbol child = entry.getValue();
+            
+            int childX = x;
             int childY = y + 150;
+            
+            // Determinar posición basada en el valor binario
+            if (key.length() == 1) {
+                // Posicionamiento para 1 bit
+                if (key.equals("0")) childX = x - offset;
+                else if (key.equals("1")) childX = x + offset;
+            } else if (key.length() == 2) {
+                // Posicionamiento para 2 bits
+                if (key.equals("00")) childX = x - offset;
+                else if (key.equals("01")) childX = x - offset / 2;
+                else if (key.equals("10")) childX = x + offset / 2;
+                else if (key.equals("11")) childX = x + offset;
+            }
+
             g.drawLine(x, y + 30, childX, childY - 30);
-            g.drawString(key, (x + childX) / 2 - 10,
-                         (y + childY) / 2 - 10);
+            
+            // Etiqueta sin negrita
+            g.setFont(new Font("Arial", Font.PLAIN, 12));
+            int labelX = (x + childX) / 2 - (g.getFontMetrics().stringWidth(key)) / 2;
+            g.drawString(key, labelX, (y + childY) / 2 - 10);
+
             dibujarNodo(g, child, childX, childY, offset / 2);
         }
 
-        // nodo
+        // Dibujar nodo actual
         g.setColor(new Color(173, 216, 230));
         g.fillOval(x - 30, y - 30, 60, 60);
         g.setColor(Color.BLACK);
         g.drawOval(x - 30, y - 30, 60, 60);
-        if (nodo.getCaracter() != ' ') {
-            g.setFont(new Font("Arial", Font.BOLD, 18));
-            String texto = nodo.getClave() + 
-                           (nodo.getCaracter() != ' ' 
-                            ? "\n" + nodo.getCaracter() : "");
-            FontMetrics fm = g.getFontMetrics();
-            String[] lines = texto.split("\n");
-            int dy = -fm.getHeight() * (lines.length - 1) / 2;
-            for (String line : lines) {
-                g.drawString(line,
-                    x - fm.stringWidth(line) / 2,
-                    y + dy + 6);
-                dy += fm.getHeight();
-            }
-        }
+
+        // Contenido del nodo
+        String texto = (nodo.getCaracter() != ' ') 
+            ? String.valueOf(nodo.getCaracter()) 
+            : nodo.getClave();
+        
+        g.setFont(new Font("Arial", Font.BOLD, 18));
+        FontMetrics fm = g.getFontMetrics();
+        int textX = x - fm.stringWidth(texto) / 2;
+        int textY = y + fm.getAscent() / 2 - 5;
+        g.drawString(texto, textX, textY);
     }
 
     @Override

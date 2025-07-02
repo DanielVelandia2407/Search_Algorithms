@@ -151,8 +151,10 @@ public class MultipleResiduoView extends JFrame {
 
     private class TreeVisualizationPanel extends JPanel {
         public TreeVisualizationPanel() {
-            setPreferredSize(new Dimension(800, 500));
-            setBackground(SOFT_WHITE);
+            setPreferredSize(new Dimension(1200, 800)); // Antes era 800x500
+            //setBackground(SOFT_WHITE);
+
+            
         }
 
         @Override
