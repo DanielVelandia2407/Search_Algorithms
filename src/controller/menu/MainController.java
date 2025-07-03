@@ -4,18 +4,34 @@ import view.menu.MainView;
 import view.menu.AlgorithmMenuView;
 import view.menu.ExternalSearchMenuView;
 import view.menu.IndicesMenuView;
+import view.menu.WelcomeView;
+import javax.swing.JFrame;
 
 public class MainController {
     private MainView mainView;
+    private JFrame parentView; // Referencia genérica al menú padre
     private AlgorithmMenuController algorithmMenuController;
     private ExternalSearchMenuController externalSearchMenuController;
     private IndicesMenuController indicesMenuController;
-    // REMOVIDO: searchMenuController - Ya no se maneja desde el menú principal
 
     public MainController(MainView mainView) {
         this.mainView = mainView;
         initializeControllers();
         initializeListeners();
+    }
+
+    /**
+     * Set the welcome view reference for navigation
+     */
+    public void setWelcomeView(WelcomeView welcomeView) {
+        this.parentView = welcomeView;
+    }
+
+    /**
+     * Set the main view reference for navigation (for compatibility)
+     */
+    public void setParentView(MainView parentMainView) {
+        this.parentView = parentMainView;
     }
 
     /**
@@ -36,8 +52,6 @@ public class MainController {
         IndicesMenuView indicesMenuView = new IndicesMenuView();
         this.indicesMenuController = new IndicesMenuController(indicesMenuView);
         this.indicesMenuController.setMainView(mainView);
-
-        // REMOVIDO: SearchMenuController - Ahora se maneja desde ExternalSearchMenuController
     }
 
     /**
@@ -53,7 +67,8 @@ public class MainController {
         // MainView -> IndicesMenuView
         this.mainView.addIndicesListener(e -> openIndicesMenu());
 
-        // REMOVIDO: addDynamicSearchListener - Ya no está en el menú principal
+        // MainView -> WelcomeView (Volver)
+        this.mainView.addBackListener(e -> backToWelcome());
     }
 
     /**
@@ -80,7 +95,15 @@ public class MainController {
         indicesMenuController.getView().setVisible(true);
     }
 
-    // REMOVIDO: openSearchMenu() - Ya no se necesita aquí
+    /**
+     * Return to welcome menu
+     */
+    public void backToWelcome() {
+        mainView.setVisible(false);
+        if (parentView != null) {
+            parentView.setVisible(true);
+        }
+    }
 
     /**
      * Show the main view
@@ -117,16 +140,13 @@ public class MainController {
         return indicesMenuController;
     }
 
-    // REMOVIDO: getSearchMenuController() - Ya no se maneja aquí
-
     /**
-     * Main method for demonstration
+     * Main method for demonstration (ahora debe usar WelcomeController)
      */
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> {
-            MainView mainView = new MainView();
-            MainController controller = new MainController(mainView);
-            controller.showView();
+            // Ahora la aplicación debe iniciarse desde WelcomeController
+            System.out.println("Use WelcomeController.main() para iniciar la aplicación completa");
         });
     }
 }

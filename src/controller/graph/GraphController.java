@@ -2,15 +2,34 @@ package controller.graph;
 
 import model.graph.GraphModel;
 import view.graph.GraphView;
+import view.menu.MainView;
+import view.menu.WelcomeView;
+
+import javax.swing.*;
 import java.util.List;
 
 public class GraphController {
     private GraphModel graph;
     private GraphView view;
+    private JFrame parentView;
 
     public GraphController() {
         this.view = new GraphView();
         setupEventListeners();
+    }
+
+    /**
+     * Set the main view reference for navigation
+     */
+    public void setMainView(MainView mainView) {
+        this.parentView = mainView;
+    }
+
+    /**
+     * Set the welcome view reference for navigation
+     */
+    public void setWelcomeView(WelcomeView welcomeView) {
+        this.parentView = welcomeView;
     }
 
     private void setupEventListeners() {
@@ -18,7 +37,7 @@ public class GraphController {
         view.addAnalyzeGraphListener(e -> analyzeGraph());
         view.addShowMatricesListener(e -> showMatrices());
         view.addClearGraphListener(e -> clearGraph());
-        view.addBackListener(e -> exitApplication());
+        view.addBackListener(e -> backToMainMenu());
     }
 
     private void createGraphFromInput() {
@@ -168,17 +187,23 @@ public class GraphController {
         }
     }
 
-    private void exitApplication() {
+    private void backToMainMenu() {
         int option = javax.swing.JOptionPane.showConfirmDialog(
                 view,
-                "¿Está seguro que desea salir de la aplicación?",
-                "Confirmar salida",
+                "¿Está seguro que desea volver al menú principal?",
+                "Confirmar regreso",
                 javax.swing.JOptionPane.YES_NO_OPTION,
                 javax.swing.JOptionPane.QUESTION_MESSAGE
         );
 
         if (option == javax.swing.JOptionPane.YES_OPTION) {
-            System.exit(0);
+            view.setVisible(false);
+            if (parentView != null) {
+                parentView.setVisible(true);
+            } else {
+                // Si no hay referencia al menú padre, cerrar la aplicación
+                System.exit(0);
+            }
         }
     }
 
@@ -249,7 +274,14 @@ public class GraphController {
         });
     }
 
-    // Método principal para ejecutar el programa
+    /**
+     * Get the graph view
+     */
+    public GraphView getView() {
+        return view;
+    }
+
+    // Método principal para ejecutar el programa independientemente
     public static void main(String[] args) {
         // Asegurar que la GUI se ejecute en el Event Dispatch Thread
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
